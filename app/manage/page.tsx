@@ -70,6 +70,12 @@ export default function ManagePage() {
       <div style={{ minHeight: "100vh", background: "#f3f4f6" }}>
         <div style={{ padding: "8px 16px", background: "#1f2937", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
           <a
+            href="/manage/gallery"
+            className="text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-600 transition"
+          >
+            갤러리 임베드 관리
+          </a>
+          <a
             href="/"
             onClick={() => sessionStorage.removeItem("pbcs_admin_authed")}
             className="text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-600 transition"

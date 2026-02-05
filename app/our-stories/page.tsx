@@ -2,84 +2,92 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type GalleryItem = {
-  id: number;
-  category: "worship" | "activity" | "event" | "outdoor";
-  date: string;
-  title: string;
-  accent: "teal" | "peach" | "lavender" | "sage";
-};
+interface GalleryFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  createdTime?: string;
+}
 
-const galleryItems: GalleryItem[] = [
-  { id: 1, category: "worship", date: "2024.12.01", title: "주일예배", accent: "teal" },
-  { id: 2, category: "activity", date: "2024.11.24", title: "게임시간", accent: "peach" },
-  { id: 3, category: "event", date: "2024.12.25", title: "성탄절", accent: "lavender" },
-  { id: 4, category: "outdoor", date: "2024.10.15", title: "가을소풍", accent: "sage" },
-  { id: 5, category: "worship", date: "2024.11.17", title: "찬양시간", accent: "teal" },
-  { id: 6, category: "activity", date: "2024.11.10", title: "만들기", accent: "peach" },
-  { id: 7, category: "event", date: "2024.08.15", title: "여름성경학교", accent: "lavender" },
-  { id: 8, category: "outdoor", date: "2024.05.05", title: "봄소풍", accent: "sage" },
-];
+function getCaption(filename: string): string {
+  return filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i, "");
+}
 
-const totalPages = 3;
-const perPage = 8;
+function formatDate(createdTime?: string): string {
+  if (!createdTime) return "";
+  try {
+    const d = new Date(createdTime);
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+  } catch {
+    return "";
+  }
+}
+
+function thumbnailUrl(fileId: string, sz: "w400" | "w1200" = "w400"): string {
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=${sz}`;
+}
+
+const PER_PAGE = 8;
 
 export default function OurStoriesPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "all" | "worship" | "activity" | "event" | "outdoor"
-  >("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-
-  const filtered = useMemo(() => {
-    if (activeTab === "all") {
-      return galleryItems;
-    }
-    return galleryItems.filter((item) => item.category === activeTab);
-  }, [activeTab]);
-
-  const pageItems = useMemo(() => {
-    const start = (currentPage - 1) * perPage;
-    return filtered.slice(start, start + perPage);
-  }, [currentPage, filtered]);
+  const [files, setFiles] = useState<GalleryFile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
+    setLoading(true);
+    setError(null);
+    fetch("/api/gallery?category=all")
+      .then((res) => {
+        if (!res.ok) throw new Error("갤러리를 불러오지 못했어요.");
+        return res.json();
+      })
+      .then((data: { files: GalleryFile[] }) => setFiles(data.files ?? []))
+      .catch((e) => setError(e instanceof Error ? e.message : "오류가 났어요."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const totalPages = Math.max(1, Math.ceil(files.length / PER_PAGE));
+  const pageItems = useMemo(() => {
+    const start = (currentPage - 1) * PER_PAGE;
+    return files.slice(start, start + PER_PAGE);
+  }, [currentPage, files]);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages >= 1) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const goToPage = (page: number) => {
-    const safePage = Math.min(Math.max(page, 1), totalPages);
-    setCurrentPage(safePage);
+    const total = Math.max(1, Math.ceil(files.length / PER_PAGE));
+    setCurrentPage(Math.min(Math.max(page, 1), total));
   };
 
   const openLightbox = (index: number) => {
-    if (filtered.length === 0) {
-      return;
-    }
+    if (files.length === 0) return;
     setLightboxIndex(index);
   };
 
   const closeLightbox = () => setLightboxIndex(null);
 
   const lightboxPrev = () => {
-    if (lightboxIndex === null || filtered.length === 0) {
-      return;
-    }
-    const prevIndex = (lightboxIndex - 1 + filtered.length) % filtered.length;
+    if (lightboxIndex === null || files.length === 0) return;
+    const prevIndex = (lightboxIndex - 1 + files.length) % files.length;
     setLightboxIndex(prevIndex);
   };
 
   const lightboxNext = () => {
-    if (lightboxIndex === null || filtered.length === 0) {
-      return;
-    }
-    const nextIndex = (lightboxIndex + 1) % filtered.length;
+    if (lightboxIndex === null || files.length === 0) return;
+    const nextIndex = (lightboxIndex + 1) % files.length;
     setLightboxIndex(nextIndex);
   };
 
   const activeLightboxItem =
-    lightboxIndex !== null ? filtered[lightboxIndex] : null;
+    lightboxIndex !== null ? files[lightboxIndex] : null;
 
   return (
     <div className="page">
@@ -161,107 +169,19 @@ export default function OurStoriesPage() {
           </dl>
         </section>
 
-        <section className="content-grid">
-          <div className="grid-text">
-            <h2>아직 쓰이고 있는 이야기</h2>
-            <p>
-              어떤 친구는 1년 전만 해도
-              <br />
-              &quot;교회 가기 싫어요&quot;라고 말했어요.
-              <br />
-              지금은 &quot;다음 주 언제예요?&quot;라고 물어요.
-            </p>
-            <p>
-              어떤 친구는 기도가 뭔지 몰랐어요.
-              <br />
-              지금은 밥 먹기 전에
-              <br />
-              &quot;하나님, 감사해요&quot; 하고 눈을 감아요.
-            </p>
-            <p>
-              작은 변화예요.
-              <br />
-              눈에 잘 안 보이는 변화예요.
-              <br />
-              하지만 우리는 알아요.
-              <br />
-              하나님이 아이들 마음에서 일하고 계신다는 걸.
-            </p>
-            <div className="highlight-box">
-              <p>
-                우리는 &quot;성공 사례&quot;를 만들지 않아요.
-                <br />
-                하나님이 일하시는 순간을 조용히 기록할 뿐이에요.
-              </p>
-            </div>
-          </div>
-          <div className="grid-image">
-            <div className="framed-image">
-              <div className="image-placeholder">
-                📷 예배하는 아이들
-                <br />
-                (자연스러운 모습)
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="gallery-section">
           <div className="gallery-container">
             <div className="gallery-header">
               <h2>📸 우리의 순간들</h2>
               <p>함께 웃고, 기도하고, 뛰어놀았던 순간들이에요</p>
             </div>
-            <div className="gallery-tabs">
-              <button
-                className={`gallery-tab ${activeTab === "all" ? "active" : ""}`}
-                data-tab="all"
-                onClick={() => setActiveTab("all")}
-              >
-                전체보기
-              </button>
-              <button
-                className={`gallery-tab ${
-                  activeTab === "worship" ? "active" : ""
-                }`}
-                data-tab="worship"
-                onClick={() => setActiveTab("worship")}
-              >
-                예배
-              </button>
-              <button
-                className={`gallery-tab ${
-                  activeTab === "activity" ? "active" : ""
-                }`}
-                data-tab="activity"
-                onClick={() => setActiveTab("activity")}
-              >
-                활동
-              </button>
-              <button
-                className={`gallery-tab ${activeTab === "event" ? "active" : ""}`}
-                data-tab="event"
-                onClick={() => setActiveTab("event")}
-              >
-                특별행사
-              </button>
-              <button
-                className={`gallery-tab ${
-                  activeTab === "outdoor" ? "active" : ""
-                }`}
-                data-tab="outdoor"
-                onClick={() => setActiveTab("outdoor")}
-              >
-                야외활동
-              </button>
-            </div>
-
             <div className="gallery-grid-wrapper">
               <button
                 className="gallery-nav-btn prev"
                 onClick={() => goToPage(currentPage - 1)}
                 aria-label="이전 페이지"
                 type="button"
+                disabled={loading || currentPage <= 1}
               >
                 <svg
                   width="24"
@@ -276,28 +196,39 @@ export default function OurStoriesPage() {
               </button>
 
               <div id="gallery-grid" className="polaroid-grid">
-                {pageItems.length === 0 ? (
+                {loading ? (
+                  <div className="gallery-empty">사진을 불러오는 중이에요...</div>
+                ) : error ? (
+                  <div className="gallery-empty">{error}</div>
+                ) : pageItems.length === 0 ? (
                   <div className="gallery-empty">
-                    아직 준비 중인 페이지입니다.
+                    이 카테고리에는 아직 사진이 없어요.
                     <br />
-                    사진이 곧 추가돼요.
+                    곧 추가될 거예요.
                   </div>
                 ) : (
                   pageItems.map((item, index) => (
                     <button
                       key={item.id}
-                      className={`polaroid accent-${item.accent}`}
-                      data-category={item.category}
+                      className="polaroid"
                       type="button"
                       onClick={() =>
-                        openLightbox((currentPage - 1) * perPage + index)
+                        openLightbox((currentPage - 1) * PER_PAGE + index)
                       }
                     >
                       <div className="polaroid-image">
-                        <span>📷 {item.title}</span>
+                        <img
+                          src={thumbnailUrl(item.id, "w400")}
+                          alt={getCaption(item.name)}
+                          loading="lazy"
+                        />
                       </div>
-                      <p className="polaroid-caption">{item.date}</p>
-                      <p className="polaroid-filename">{item.title}</p>
+                      <p className="polaroid-caption polaroid-caption-handwriting">
+                        {getCaption(item.name)}
+                        {formatDate(item.createdTime) && (
+                          <span className="polaroid-date"> · {formatDate(item.createdTime)}</span>
+                        )}
+                      </p>
                     </button>
                   ))
                 )}
@@ -308,6 +239,7 @@ export default function OurStoriesPage() {
                 onClick={() => goToPage(currentPage + 1)}
                 aria-label="다음 페이지"
                 type="button"
+                disabled={loading || currentPage >= totalPages}
               >
                 <svg
                   width="24"
@@ -333,6 +265,7 @@ export default function OurStoriesPage() {
                     }`}
                     onClick={() => goToPage(page)}
                     type="button"
+                    disabled={loading}
                   >
                     {page}
                   </button>
@@ -361,15 +294,23 @@ export default function OurStoriesPage() {
           <div className="lightbox-content">
             <div className="lightbox-image">
               {activeLightboxItem ? (
-                <span>📷 {activeLightboxItem.title}</span>
+                <img
+                  src={thumbnailUrl(activeLightboxItem.id, "w1200")}
+                  alt={getCaption(activeLightboxItem.name)}
+                />
               ) : (
                 <span>사진을 준비 중이에요</span>
               )}
             </div>
-            <p className="lightbox-caption">
-              {activeLightboxItem
-                ? `${activeLightboxItem.date} · ${activeLightboxItem.title}`
-                : ""}
+            <p className="lightbox-caption lightbox-caption-handwriting">
+              {activeLightboxItem ? (
+                <>
+                  {getCaption(activeLightboxItem.name)}
+                  {formatDate(activeLightboxItem.createdTime) && (
+                    <span className="lightbox-date"> · {formatDate(activeLightboxItem.createdTime)}</span>
+                  )}
+                </>
+              ) : ""}
             </p>
           </div>
           <button className="lightbox-nav next" onClick={lightboxNext} type="button">
@@ -560,99 +501,6 @@ export default function OurStoriesPage() {
           color: #1a1a1a;
         }
 
-        .content-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          min-height: 100vh;
-          padding: 0 48px;
-        }
-
-        .content-grid.reverse {
-          direction: rtl;
-        }
-
-        .content-grid.reverse > * {
-          direction: ltr;
-        }
-
-        .grid-text {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 80px;
-        }
-
-        .grid-text h2 {
-          font-family: "Playfair Display", serif;
-          font-size: 28px;
-          font-weight: 400;
-          margin-bottom: 32px;
-          line-height: 1.3;
-        }
-
-        .grid-text p {
-          font-size: 16px;
-          line-height: 2;
-          color: #555;
-          font-weight: 300;
-          margin-bottom: 20px;
-        }
-
-        .grid-text p:last-child {
-          margin-bottom: 0;
-        }
-
-        .highlight-box {
-          background: #fff;
-          border-left: 3px solid #7eb8b8;
-          padding: 24px 28px;
-          margin-top: 32px;
-          border-radius: 0 8px 8px 0;
-        }
-
-        .highlight-box p {
-          font-size: 15px;
-          color: #666;
-          margin-bottom: 0;
-          font-style: italic;
-        }
-
-        .grid-image {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 80px 40px;
-        }
-
-        .framed-image {
-          width: 100%;
-          max-width: 400px;
-          aspect-ratio: 4/5;
-          background: #e8e4df;
-          border-radius: 4px;
-          overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        }
-
-        .framed-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .image-placeholder {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          font-size: 14px;
-          color: #999;
-          padding: 20px;
-          background: linear-gradient(145deg, #e8f4f4 0%, #d5ebeb 100%);
-        }
-
         .text-full {
           padding: 120px 48px;
           max-width: 800px;
@@ -678,7 +526,14 @@ export default function OurStoriesPage() {
 
         .gallery-section {
           padding: 100px 48px;
-          background: #fff;
+          background: linear-gradient(
+            145deg,
+            #d4d4d4 0%,
+            #c9c9c9 25%,
+            #e0e0e0 50%,
+            #cfcfcf 75%,
+            #d8d8d8 100%
+          );
         }
 
         .gallery-container {
@@ -704,36 +559,6 @@ export default function OurStoriesPage() {
           max-width: 500px;
           margin: 0 auto;
           line-height: 1.7;
-        }
-
-        .gallery-tabs {
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          margin-bottom: 40px;
-          flex-wrap: wrap;
-        }
-
-        .gallery-tab {
-          padding: 12px 28px;
-          background: #f8f7f5;
-          border: none;
-          border-radius: 30px;
-          font-size: 14px;
-          color: #666;
-          cursor: pointer;
-          transition: all 0.3s;
-          font-family: "Noto Sans KR", sans-serif;
-        }
-
-        .gallery-tab:hover {
-          background: #e8f4f4;
-          color: #5a9e9e;
-        }
-
-        .gallery-tab.active {
-          background: #7eb8b8;
-          color: white;
         }
 
         .gallery-grid-wrapper {
@@ -770,56 +595,75 @@ export default function OurStoriesPage() {
         .polaroid {
           border: none;
           background: #fff;
-          border-radius: 18px;
+          border-radius: 0;
           padding: 16px 16px 20px;
           text-align: left;
-          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+          box-shadow:
+            0 24px 48px rgba(0, 0, 0, 0.14),
+            0 12px 24px rgba(0, 0, 0, 0.1),
+            0 6px 12px rgba(0, 0, 0, 0.08);
           cursor: pointer;
-          transition: transform 0.2s ease;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
           font-family: "Noto Sans KR", sans-serif;
         }
 
         .polaroid:hover {
-          transform: translateY(-6px);
+          transform: translateY(-12px);
+          box-shadow:
+            0 32px 64px rgba(0, 0, 0, 0.18),
+            0 16px 32px rgba(0, 0, 0, 0.12),
+            0 8px 16px rgba(0, 0, 0, 0.08);
         }
 
         .polaroid-image {
           aspect-ratio: 1;
-          border-radius: 14px;
+          border-radius: 0;
+          overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 14px;
           color: #555;
           margin-bottom: 12px;
+          background: #e8e4df;
+        }
+
+        .polaroid-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
         .polaroid-caption {
           font-size: 13px;
           color: #888;
-          margin-bottom: 4px;
+          margin-bottom: 0;
         }
 
-        .polaroid-filename {
-          font-size: 15px;
-          font-weight: 500;
+        .polaroid-caption-handwriting {
+          font-family: "Nanum Pen Script", cursive;
+          font-size: 18px;
           color: #333;
+          margin-top: 4px;
         }
 
-        .accent-teal .polaroid-image {
-          background: linear-gradient(145deg, #e8f4f4 0%, #d5ebeb 100%);
+        .polaroid-date {
+          font-family: "Noto Sans KR", sans-serif;
+          font-size: 13px;
+          color: #888;
+          font-weight: 400;
         }
 
-        .accent-peach .polaroid-image {
-          background: linear-gradient(145deg, #fef3e8 0%, #fce8d8 100%);
+        .lightbox-caption-handwriting {
+          font-family: "Nanum Pen Script", cursive;
+          font-size: 22px;
+          color: #fff;
         }
 
-        .accent-lavender .polaroid-image {
-          background: linear-gradient(145deg, #f0eaf8 0%, #e5ddf0 100%);
-        }
-
-        .accent-sage .polaroid-image {
-          background: linear-gradient(145deg, #e8f0eb 0%, #d8e5dc 100%);
+        .lightbox-date {
+          font-family: "Noto Sans KR", sans-serif;
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.85);
         }
 
         .gallery-empty {
@@ -880,16 +724,23 @@ export default function OurStoriesPage() {
         }
 
         .lightbox-image {
-          width: min(70vw, 520px);
-          aspect-ratio: 1;
+          width: min(85vw, 720px);
+          max-height: 75vh;
           border-radius: 18px;
-          background: linear-gradient(145deg, #e8f4f4 0%, #d5ebeb 100%);
+          background: #1a1a1a;
           display: flex;
           align-items: center;
           justify-content: center;
+          overflow: hidden;
           font-size: 16px;
           margin: 0 auto 20px;
           color: #2f4f4f;
+        }
+
+        .lightbox-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
         }
 
         .lightbox-caption {
@@ -977,29 +828,6 @@ export default function OurStoriesPage() {
           .hero-meta {
             flex-direction: column;
             gap: 20px;
-          }
-
-          .content-grid {
-            grid-template-columns: 1fr;
-            padding: 0 24px;
-          }
-
-          .content-grid.reverse {
-            direction: ltr;
-          }
-
-          .grid-text {
-            padding: 60px 0;
-            order: 2;
-          }
-
-          .grid-image {
-            padding: 40px 0;
-            order: 1;
-          }
-
-          .framed-image {
-            max-width: 300px;
           }
 
           .text-full {
