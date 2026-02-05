@@ -62,3 +62,16 @@ img {
 .brand-sub {
   word-break: keep-all;
 }
+
+/* 모바일에서 스크롤바 숨김 - 유격/가로 흔들림 방지 */
+@media (max-width: 900px) {
+  html,
+  body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+}
