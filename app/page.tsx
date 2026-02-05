@@ -670,6 +670,8 @@ export default function Home() {
           background: #000;
           min-height: 100vh;
           position: relative;
+          overflow-x: hidden;
+          max-width: 100vw;
         }
 
         .hero {
@@ -1129,13 +1131,15 @@ export default function Home() {
           width: 10px;
           height: 10px;
           border-radius: 2px;
-          border: 1px solid rgba(0, 0, 0, 0.18);
-          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.55);
+          background: rgba(255, 255, 255, 0.18);
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
         }
 
         .indicator.active {
-          border-color: rgba(0, 0, 0, 0.75);
-          background: rgba(0, 0, 0, 0.08);
+          border-color: rgba(255, 255, 255, 0.95);
+          background: rgba(255, 255, 255, 0.5);
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
         }
 
         @media (max-width: 900px) {

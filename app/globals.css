@@ -18,6 +18,15 @@ body {
   color: #fff;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+html {
+  width: 100%;
+}
+body {
+  width: 100%;
+  min-width: 0;
 }
 
 body {
@@ -159,15 +168,15 @@ img {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
 }
 
-/* 모바일에서 스크롤바 숨김 - 유격/가로 흔들림 방지 */
-@media (max-width: 900px) {
-  html,
-  body {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar {
-    display: none;
-  }
+/* 스크롤바 숨김 - 유격/가로 흔들림 방지 (전체 적용) */
+html,
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
