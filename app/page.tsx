@@ -298,21 +298,21 @@ export default function Home() {
       <section
         className="relative z-10 flex min-h-[50vh] flex-col items-center justify-center text-center px-4 pt-20 pb-20 md:min-h-screen md:px-8 md:pt-[100px] md:pb-[100px] bg-cover bg-center bg-fixed"
         style={{
-          backgroundImage: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/KakaoTalk_Photo_2026-01-04-00-39-12%20003.jpg')",
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.68), rgba(255,255,255,0.68)), url('https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/KakaoTalk_Photo_2026-01-04-00-39-12%20003.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundAttachment: "fixed",
         }}
       >
         <p
-          className="text-white text-sm md:text-base tracking-[0.3em] md:tracking-[0.4em] mb-6 md:mb-8"
+          className="text-gray-900 text-sm md:text-base tracking-[0.3em] md:tracking-[0.4em] mb-6 md:mb-8"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, letterSpacing: "0.4em" }}
         >
           포 천 중 앙 침 례 교 회
         </p>
-        <div className="w-full max-w-3xl h-[1px] bg-white opacity-60 mb-8 md:mb-12" />
+        <div className="w-full max-w-3xl h-[1px] bg-gray-700 opacity-60 mb-8 md:mb-12" />
         <h2
-          className="text-white mb-10 md:mb-14"
+          className="text-gray-900 mb-10 md:mb-14"
           style={{
             fontFamily: "'Playfair Display', serif",
             fontWeight: 400,
@@ -324,43 +324,43 @@ export default function Home() {
           Children&apos;s Ministry
         </h2>
         <p
-          className="text-white text-lg md:text-xl lg:text-2xl mb-2 font-semibold"
+          className="text-gray-900 text-lg md:text-xl lg:text-2xl mb-2 font-semibold"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", lineHeight: 1.8 }}
         >
           포천중앙침례교회 주일학교는<br className="md:hidden" /> 아이들이 하나님의 사랑을 경험하는 곳입니다.
         </p>
         <p
-          className="text-white text-base md:text-lg lg:text-xl mb-1"
+          className="text-gray-900 text-base md:text-lg lg:text-xl mb-1"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
         >
           우리는 눈높이에 맞는 예배로 하나님을 만나고,
         </p>
         <p
-          className="text-white text-base md:text-lg lg:text-xl mb-1"
+          className="text-gray-900 text-base md:text-lg lg:text-xl mb-1"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
         >
           친구들과 함께 웃고 뛰며 믿음 안에서 자라갑니다.
         </p>
         <p
-          className="text-white text-base md:text-lg lg:text-xl mb-1"
+          className="text-gray-900 text-base md:text-lg lg:text-xl mb-1"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
         >
           말씀을 쉽고 재미있게 배우며,
         </p>
         <p
-          className="text-white text-base md:text-lg lg:text-xl mb-10 md:mb-14"
+          className="text-gray-900 text-base md:text-lg lg:text-xl mb-10 md:mb-14"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
         >
           하나님을 사랑하는 어린이로 성장합니다.
         </p>
         <p
-          className="text-white text-lg md:text-xl lg:text-2xl font-medium mb-1"
+          className="text-gray-900 text-lg md:text-xl lg:text-2xl font-medium mb-1"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", lineHeight: 1.8 }}
         >
           처음 오는 친구도, 오래 다닌 친구도,
         </p>
         <p
-          className="text-white text-lg md:text-xl lg:text-2xl font-medium mb-12 md:mb-16"
+          className="text-gray-900 text-lg md:text-xl lg:text-2xl font-medium mb-12 md:mb-16"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", lineHeight: 1.8 }}
         >
           모두 환영합니다. 함께 신나는 주일을 만들어요!
@@ -379,7 +379,7 @@ export default function Home() {
             }
             return false;
           }}
-          className="inline-block border-2 border-white text-white px-6 md:px-10 py-2.5 md:py-3 rounded-lg transition-all duration-300 hover:bg-white hover:text-gray-900 mt-12 md:mt-16"
+          className="inline-block border-2 border-gray-900 text-gray-900 px-6 md:px-10 py-2.5 md:py-3 rounded-lg transition-all duration-300 hover:bg-gray-900 hover:text-white mt-12 md:mt-16"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 400, fontSize: "13px", letterSpacing: "0.5em" }}
         >
           예 배 안 내
@@ -426,6 +426,166 @@ export default function Home() {
               <span className="color-red-outline">주일학교&nbsp;</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* 부모님 환영 섹션 */}
+      <section
+        id="parents-welcome"
+        className="pt-[60px] pb-2 px-6 md:py-[100px] md:px-6"
+        style={{ background: "linear-gradient(180deg, #FDF8F3 0%, #FFFFFF 100%)" }}
+      >
+        <div className="mx-auto max-w-[900px]">
+          {/* 헤더 */}
+          <div className="mb-8 md:mb-16 text-center">
+            <p
+              className="text-sm mb-4 font-[400]"
+              style={{ color: "#4A90D9", letterSpacing: "0.2em", fontFamily: "'Noto Sans KR', sans-serif" }}
+            >
+              FOR PARENTS
+            </p>
+            <h2
+              className="mb-6 text-[#333] font-normal"
+              style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(36px, 6vw, 56px)" }}
+            >
+              Welcome, 부모님
+            </h2>
+            <p
+              className="text-xl text-[#555] font-light"
+              style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+            >
+              &quot;우리 아이, 맡겨도 괜찮을까요?&quot;
+            </p>
+            <p
+              className="mt-2 text-[17px] text-[#888] font-light"
+              style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+            >
+              그 마음, 저희도 압니다.
+            </p>
+          </div>
+
+          {/* 3가지 약속 카드 */}
+          <div className="mb-8 md:mb-16 grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-3 auto-rows-fr">
+            <div
+              className="parents-welcome-card rounded-[20px] px-7 py-9 text-center bg-white"
+              style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}
+            >
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 text-[28px]"
+                style={{ background: "linear-gradient(135deg, #FFE5D0 0%, #FFD4B8 100%)" }}
+              >
+                👋
+              </div>
+              <h3 className="text-lg font-semibold text-[#333] mb-3" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                이름을 기억해요
+              </h3>
+              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                한 명 한 명,
+                <br />
+                이름으로 부르고 기억해요.
+              </p>
+            </div>
+            <div
+              className="parents-welcome-card rounded-[20px] px-7 py-9 text-center bg-white"
+              style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}
+            >
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 text-[28px]"
+                style={{ background: "linear-gradient(135deg, #D4EDFF 0%, #B8DFFF 100%)" }}
+              >
+                🙏
+              </div>
+              <h3 className="text-lg font-semibold text-[#333] mb-3" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                기도로 준비해요
+              </h3>
+              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                선생님들은 예배 전
+                <br />
+                아이들 이름을 부르며 기도해요.
+              </p>
+            </div>
+            <div
+              className="parents-welcome-card rounded-[20px] px-7 py-9 text-center bg-white"
+              style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}
+            >
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 text-[28px]"
+                style={{ background: "linear-gradient(135deg, #E8F5E8 0%, #D0EED0 100%)" }}
+              >
+                💚
+              </div>
+              <h3 className="text-lg font-semibold text-[#333] mb-3" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                억지로 시키지 않아요
+              </h3>
+              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                기도도, 찬양도, 발표도 강요하지 않아요.
+                <br />
+                아이의 속도에 맞춰 천천히 함께 가요.
+              </p>
+            </div>
+          </div>
+
+          {/* Q&A 영역 */}
+          <div
+            className="rounded-[24px] p-8 md:p-10 mb-6 md:mb-12 bg-white"
+            style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}
+          >
+            <h3
+              className="text-sm mb-7 text-center"
+              style={{ color: "#4A90D9", letterSpacing: "0.15em", fontFamily: "'Noto Sans KR', sans-serif" }}
+            >
+              자주 묻는 질문
+            </h3>
+            <div className="mb-4 pb-4 md:mb-6 md:pb-6 border-b border-[#f0f0f0]">
+              <p className="text-base font-semibold text-[#333] mb-2" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                Q. 처음 와도 괜찮을까요?
+              </p>
+              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                물론이에요! 어색하지 않게 친구들과 어울릴 수 있도록 도와드려요.
+              </p>
+            </div>
+            <div>
+              <p className="text-base font-semibold text-[#333] mb-2" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                Q. 아이가 소심한데요...
+              </p>
+              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                괜찮아요. 조용히 앉아 있어도 돼요. 그냥 함께 있는 것만으로 충분해요.
+              </p>
+            </div>
+          </div>
+
+          {/* 목표 강조 */}
+          <div
+            className="text-center py-12 px-6 rounded-[24px] text-white"
+            style={{ background: "linear-gradient(135deg, #4A90D9 0%, #6BA3E0 100%)" }}
+          >
+            <p
+              className="text-sm mb-4 opacity-80"
+              style={{ letterSpacing: "0.15em", fontFamily: "'Noto Sans KR', sans-serif" }}
+            >
+              OUR GOAL
+            </p>
+            <p className="text-[15px] mb-3 opacity-90 font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+              저희 목표는 하나예요.
+            </p>
+            <p
+              className="mb-4 leading-snug font-normal"
+              style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(22px, 4vw, 32px)" }}
+            >
+              &quot;하나님은 나를 사랑하신다&quot;
+            </p>
+            <p className="text-[15px] opacity-90 font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+              이 한 가지만 마음에 새겨지면 충분해요.
+            </p>
+          </div>
+
+          {/* 마무리 */}
+          <p
+            className="text-center mt-4 md:mt-12 text-xl text-[#333] font-medium"
+            style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+          >
+            편하게 보내주세요. 💙
+          </p>
         </div>
       </section>
 
@@ -619,6 +779,11 @@ export default function Home() {
           perspective: 1000px;
           perspective-origin: center 50%;
         }
+        @media (max-width: 768px) {
+          .section {
+            height: 72vh;
+          }
+        }
 
         .card {
           width: min(92%, 1160px);
@@ -690,6 +855,11 @@ export default function Home() {
           justify-content: center;
           padding: clamp(24px, 6vw, 72px);
           gap: clamp(18px, 2.2vw, 28px);
+        }
+        @media (max-width: 768px) {
+          .card-content {
+            gap: clamp(4px, 0.6vw, 8px);
+          }
         }
 
         .card-content > * {

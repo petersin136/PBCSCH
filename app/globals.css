@@ -150,6 +150,15 @@ img {
   }
 }
 
+/* 부모님 환영 섹션 카드 호버 */
+.parents-welcome-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.parents-welcome-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
 /* 모바일에서 스크롤바 숨김 - 유격/가로 흔들림 방지 */
 @media (max-width: 900px) {
   html,
