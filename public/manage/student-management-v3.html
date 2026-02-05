@@ -436,8 +436,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            if (students.length === 0) { students = getSampleData(); saveToStorage(); }
-            else migrateOwnersToGradeTeachers();
+            if (students.length > 0) migrateOwnersToGradeTeachers();
             renderMonthTabs(); renderWeekPills(); renderAll();
         });
 
