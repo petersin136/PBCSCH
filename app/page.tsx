@@ -41,6 +41,132 @@ const sections = [
   },
 ];
 
+const PARENT_NOTICE_HTML = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포천중앙침례교회 주일학교 안내</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; min-height: 100%; padding: 20px; line-height: 1.7; color: #333; }
+    .container { max-width: 700px; margin: 0 auto; background: #fff; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 40px 30px; text-align: center; color: white; }
+    .header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    .header p { font-size: 1rem; opacity: 0.95; }
+    .content { padding: 30px; }
+    .greeting { background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%); border-left: 4px solid #ffc107; padding: 20px; border-radius: 12px; margin-bottom: 25px; font-size: 0.95rem; }
+    .greeting strong { color: #e65100; }
+    .section { margin-bottom: 28px; }
+    .section-title { display: flex; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 700; color: #1a237e; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e8eaf6; }
+    .section-title .icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .icon-time { background: #e3f2fd; } .icon-bus { background: #fff3e0; } .icon-safety { background: #e8f5e9; } .icon-video { background: #fce4ec; } .icon-heart { background: #f3e5f5; }
+    .time-box { background: #f8f9ff; border-radius: 16px; padding: 20px; display: flex; flex-wrap: wrap; gap: 15px; }
+    .time-item { flex: 1; min-width: 200px; background: white; border-radius: 12px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; }
+    .time-item .label { font-size: 0.85rem; color: #666; margin-bottom: 8px; }
+    .time-item .time { font-size: 1.4rem; font-weight: 700; color: #1565c0; }
+    .time-item .note { font-size: 0.8rem; color: #888; margin-top: 6px; }
+    .info-list { list-style: none; }
+    .info-list li { position: relative; padding: 12px 0 12px 28px; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem; }
+    .info-list li:last-child { border-bottom: none; }
+    .info-list li::before { content: "✓"; position: absolute; left: 0; color: #4caf50; font-weight: bold; }
+    .highlight-box { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 12px; padding: 18px; margin-top: 15px; }
+    .highlight-box.warning { background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%); }
+    .highlight-box p { font-size: 0.9rem; display: flex; align-items: flex-start; gap: 10px; }
+    .highlight-box .emoji { font-size: 1.2rem; flex-shrink: 0; }
+    .bus-schedule { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+    .bus-item { background: white; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+    .bus-item .direction { font-size: 0.85rem; color: #ff6f00; font-weight: 600; margin-bottom: 6px; }
+    .bus-item .schedule { font-size: 1.1rem; font-weight: 700; color: #333; }
+    .video-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+    .video-item { background: white; border-radius: 10px; padding: 12px 15px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .closing { background: linear-gradient(135deg, #e1f5fe 0%, #b3e5fc 100%); border-radius: 16px; padding: 25px; text-align: center; margin-top: 20px; }
+    .closing p { font-size: 0.95rem; margin-bottom: 15px; }
+    .closing .signature { font-weight: 700; color: #0277bd; font-size: 1rem; }
+    .contact-btn { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 30px; text-decoration: none; font-weight: 600; margin-top: 10px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: transform 0.2s, box-shadow 0.2s; }
+    .contact-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5); }
+    @media (max-width: 500px) { body { padding: 10px; } .header { padding: 30px 20px; } .header h1 { font-size: 1.5rem; } .content { padding: 20px; } .bus-schedule { grid-template-columns: 1fr; } .video-content { grid-template-columns: 1fr; } .time-box { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⛪ 포천중앙침례교회 주일학교</h1>
+      <p>학부모님 안내문</p>
+    </div>
+    <div class="content">
+      <div class="greeting">
+        <strong>학부모님께 💌</strong><br><br>
+        안녕하세요! 주일학교 담당 <strong>신승용 전도사</strong>입니다.<br>
+        혹시 학부모님들도 어린 시절 주일학교에서 친구들과 뛰어놀고, 찬양하며 보냈던 따뜻한 추억이 있으신가요?<br>
+        저희도 우리 아이들에게 그런 소중한 경험을 선물하고 싶습니다. 🙏
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="icon icon-time">⏰</span>예배 시간 안내</div>
+        <div class="time-box">
+          <div class="time-item">
+            <div class="label">예배 시간</div>
+            <div class="time">오후 2시 ~ 4시</div>
+            <div class="note">교사들이 함께하는 시간</div>
+          </div>
+          <div class="time-item">
+            <div class="label">등교 권장 시간</div>
+            <div class="time">오후 1시 50분</div>
+            <div class="note">여유있게 준비할 수 있어요</div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="icon icon-bus">🚌</span>차량 운행 안내</div>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">아이들의 안전한 등하교를 위해 교회 차량을 운행합니다.</p>
+        <div class="bus-schedule">
+          <div class="bus-item"><div class="direction">🏠→⛪ 등교</div><div class="schedule">1:30 ~ 2:00</div></div>
+          <div class="bus-item"><div class="direction">⛪→🏠 하교</div><div class="schedule">4:00 ~ 4:30</div></div>
+        </div>
+        <div class="highlight-box warning">
+          <p><span class="emoji">📌</span><span>주중 연습(찬양, 워십댄스)이 있을 경우 담당 선생님이 미리 일정과 차량 시간을 공지해드립니다.</span></p>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="icon icon-safety">🛡️</span>안전한 주일학교를 위한 협력</div>
+        <ul class="info-list">
+          <li>예배 시간 동안 <strong>교회 건물 안</strong>에서 교사들이 함께합니다</li>
+          <li>예배 전후에도 <strong>건물 내</strong>에서는 교사들이 살핍니다</li>
+          <li>교회 밖(체육공원, 야외)은 교사 동행이 어려워요</li>
+          <li>아이가 외부에 나가고 싶을 때는 <strong>학부모님께 먼저 연락</strong>드립니다</li>
+        </ul>
+        <div class="highlight-box">
+          <p><span class="emoji">💡</span><span>가정에서도 이 부분을 아이들과 미리 이야기 나눠주시면 큰 도움이 됩니다!</span></p>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="icon icon-video">📹</span>활동 영상 공유 안내</div>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">아이들의 소중한 순간을 유튜브 쇼츠와 인스타그램에 공유합니다.</p>
+        <div class="video-content">
+          <div class="video-item">🎵 찬양하는 모습</div>
+          <div class="video-item">📖 말씀 듣는 모습</div>
+          <div class="video-item">🙏 예배드리는 모습</div>
+          <div class="video-item">🎉 활동하는 모습</div>
+        </div>
+        <div class="highlight-box">
+          <p><span class="emoji">🤝</span><span>아이들 성격에 맞춰 존중하며 촬영하겠습니다.</span></p>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="icon icon-heart">💝</span>교회와 가정이 함께</div>
+        <p style="font-size: 0.95rem;">아이들이 친구들과 어울리며 관계 맺는 법을 배워가는 과정에서 때로는 서툴 수 있습니다. 필요한 경우 학부모님과 소통하며 아이들이 건강하게 성장할 수 있도록 함께 돕겠습니다.</p>
+      </div>
+      <div class="closing">
+        <p>우리 아이들이 주일학교에서 <strong>예수님의 사랑</strong>을 경험하고,<br>친구들과 <strong>행복한 추억</strong>을 만들어갈 수 있도록 최선을 다하겠습니다. 🌈</p>
+        <p style="font-size: 0.85rem; color: #666;">늘 감사드리며, 주님의 은혜가 가정에 가득하시길 기도합니다.</p>
+        <div class="signature">포천중앙침례교회 주일학교 교사 일동</div>
+        <a href="sms:01040028880" class="contact-btn">💬 문의하기</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
 const images = [
   "https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/WorshipTogether.jpg",
   "https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/Into%20theWord.jpg",
@@ -59,6 +185,7 @@ export default function Home() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [videoEnded, setVideoEnded] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [parentNoticeOpen, setParentNoticeOpen] = useState(false);
   const endVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const imagesByIndex = useMemo(() => {
@@ -589,8 +716,68 @@ export default function Home() {
           >
             편하게 보내주세요. 💙
           </p>
+          <div className="text-center mt-6">
+            <button
+              type="button"
+              onClick={() => setParentNoticeOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[15px] font-medium text-white transition shadow-md hover:shadow-lg"
+              style={{ background: "linear-gradient(135deg, #4A90D9 0%, #6BA3E0 100%)", fontFamily: "'Noto Sans KR', sans-serif" }}
+            >
+              <span>📄</span>
+              부모님께 드리는 안내문
+            </button>
+          </div>
         </div>
       </section>
+
+      {/* 부모님 안내문 모달 - 크게·길게, 모바일 전체화면 대응 */}
+      {parentNoticeOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/50"
+          onClick={() => setParentNoticeOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="parent-notice-title"
+        >
+          <div
+            className="bg-white w-full max-w-4xl h-[95vh] md:h-[90vh] md:max-h-[90vh] flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-[#eee] shrink-0">
+              <h3 id="parent-notice-title" className="text-base md:text-lg font-semibold text-[#333]" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                부모님께 드리는 안내문
+              </h3>
+              <button
+                type="button"
+                onClick={() => setParentNoticeOpen(false)}
+                className="p-2.5 -mr-1 text-[#888] hover:text-[#333] rounded-lg hover:bg-[#f5f5f5] transition touch-manipulation"
+                aria-label="닫기"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <iframe
+                title="주일학교 안내문"
+                srcDoc={PARENT_NOTICE_HTML}
+                className="w-full flex-1 min-h-[60vh] border-0 overflow-auto"
+                sandbox="allow-same-origin allow-popups"
+              />
+              <div className="px-4 md:px-6 py-4 border-t border-[#eee] shrink-0 bg-white">
+                <a
+                  href="/parent-notice.docx"
+                  download="포천중앙침례교회_주일학교_안내.docx"
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-xl py-3.5 text-white font-medium transition touch-manipulation"
+                  style={{ background: "linear-gradient(135deg, #4A90D9 0%, #6BA3E0 100%)", fontFamily: "'Noto Sans KR', sans-serif" }}
+                >
+                  <span>⬇</span>
+                  안내문 다운로드
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {sections.map((section, idx) => (
         <div key={`${section.category}-${idx}-wrap`} id={idx === 0 ? "worship-times" : undefined}>
