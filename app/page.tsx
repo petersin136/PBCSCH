@@ -665,6 +665,83 @@ export default function Home() {
         </div>
       ))}
 
+      <section id="contact" className="py-40 px-8 bg-white text-gray-900" style={{ position: "relative", zIndex: 1 }}>
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900" style={{ lineHeight: 1.8 }}>
+            아이 마음이 궁금하거나,
+            <br />
+            학부모님도 조심스럽게 여쭤보고 싶은 이야기가 있으신가요?
+            <br />
+            전도사님께 이메일로 편지를 보내주세요.
+          </h2>
+          <a
+            href="mailto:petersin1@hanmail.net"
+            className="inline-block mt-12 bg-black text-white px-12 py-5 rounded-full text-xl font-semibold hover:bg-gray-800 transition"
+          >
+            전도사님께 이메일 보내기 →
+          </a>
+        </div>
+      </section>
+
+      <footer className="bg-[#F1F1F1] text-gray-900 border-t border-black/10">
+        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+          <div className="grid gap-10 md:grid-cols-2">
+            <div>
+              <p
+                className="text-sm uppercase tracking-[0.3em] text-gray-500 mb-4"
+                style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+              >
+                PBCSCH
+              </p>
+              <h3
+                className="text-2xl md:text-3xl text-gray-900 mb-4"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Children&apos;s Ministry
+              </h3>
+              <p
+                className="text-gray-600 leading-relaxed"
+                style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+              >
+                따뜻한 환대와 말씀으로 아이들의 마음에
+                <br />
+                믿음의 씨앗을 심어가는 주일학교입니다.
+              </p>
+            </div>
+            <div>
+              <p
+                className="text-sm uppercase tracking-[0.3em] text-gray-500 mb-4"
+                style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+              >
+                WELCOME
+              </p>
+              <p
+                className="text-gray-600 leading-relaxed mb-6"
+                style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+              >
+                처음 오신 부모님도 편안하게 함께하실 수 있도록
+                따뜻하게 안내해 드립니다.
+              </p>
+              <div
+                className="inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2 text-sm text-gray-600"
+                style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
+              >
+                <span className="inline-block h-2 w-2 rounded-full bg-[#F5A962]" />
+                언제든 환영합니다
+              </div>
+              <div className="mt-6 text-sm text-gray-600" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+                <p>포천중앙침례교회 담임목사 박상구</p>
+                <p className="mt-1">주일학교 담당 전도사 신승용</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10 pt-6 border-t border-black/10 text-sm text-gray-500 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <span>© {new Date().getFullYear()} PBCSCH. All rights reserved.</span>
+            <span>포천중앙침례교회 주일학교</span>
+          </div>
+        </div>
+      </footer>
+
       <style jsx>{`
         .page {
           background: #000;
