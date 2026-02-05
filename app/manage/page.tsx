@@ -28,6 +28,16 @@ export default function ManagePage() {
     }
   };
 
+  useEffect(() => {
+    if (!authed) return;
+    const preventBack = () => {
+      history.pushState({ admin: "1" }, "", window.location.pathname);
+    };
+    history.pushState({ admin: "1" }, "", window.location.pathname);
+    window.addEventListener("popstate", preventBack);
+    return () => window.removeEventListener("popstate", preventBack);
+  }, [authed]);
+
   if (authed) {
     return (
       <div style={{ minHeight: "100vh", background: "#f3f4f6" }}>
