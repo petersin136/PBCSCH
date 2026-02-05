@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주일학교 학생관리</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+            --danger: #dc2626; --danger-light: #fee2e2;
+            --warning: #f59e0b; --warning-light: #fef3c7;
+            --success: #16a34a; --success-light: #dcfce7;
+            --purple: #7c3aed; --purple-light: #ede9fe;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+            --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+            --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937;
+            --radius: 10px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(135deg, #f0f4ff, #fdf4ff); min-height: 100vh; color: var(--gray-800); }
+
+        .header { background: white; padding: 0.6rem 1rem; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+        .header-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .logo { display: flex; align-items: center; gap: 0.4rem; }
+        .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--purple)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; }
+        .logo-text { font-size: 0.95rem; font-weight: 700; }
+        .header-actions { display: flex; gap: 0.4rem; }
+
+        .btn { padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.3rem; font-family: inherit; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: white; color: var(--gray-700); border: 1px solid var(--gray-300); }
+
+        .main { max-width: 1400px; margin: 0 auto; padding: 0.75rem; }
+
+        /* 학년부 탭 */
+        .dept-tabs { display: flex; background: white; border-radius: 10px; padding: 3px; box-shadow: var(--shadow); margin-bottom: 0.75rem; position: relative; }
+        .dept-tab { flex: 1; padding: 0.6rem 0.4rem; border: none; background: transparent; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-radius: 8px; font-family: inherit; color: var(--gray-500); text-align: center; position: relative; z-index: 1; }
+        .dept-tab:hover { color: var(--gray-700); }
+        .dept-tab.active { color: white; }
+        .dept-tab .dept-count { display: block; font-size: 0.65rem; margin-top: 1px; opacity: 0.85; }
+        .dept-tab-indicator { position: absolute; height: calc(100% - 6px); top: 3px; border-radius: 8px; transition: all 0.3s ease; z-index: 0; }
+        .dept-tabs[data-active="grade1"] .dept-tab-indicator { background: linear-gradient(135deg, #f97316, #fb923c); left: 3px; width: calc(16.666% - 4px); }
+        .dept-tabs[data-active="grade2"] .dept-tab-indicator { background: linear-gradient(135deg, #f59e0b, #fbbf24); left: calc(16.666% + 1px); width: calc(16.666% - 2px); }
+        .dept-tabs[data-active="grade3"] .dept-tab-indicator { background: linear-gradient(135deg, #16a34a, #22c55e); left: calc(33.333% + 1px); width: calc(16.666% - 2px); }
+        .dept-tabs[data-active="grade4"] .dept-tab-indicator { background: linear-gradient(135deg, #0ea5e9, #38bdf8); left: calc(50% + 1px); width: calc(16.666% - 2px); }
+        .dept-tabs[data-active="grade5"] .dept-tab-indicator { background: linear-gradient(135deg, #6366f1, #8b5cf6); left: calc(66.666% + 1px); width: calc(16.666% - 2px); }
+        .dept-tabs[data-active="grade6"] .dept-tab-indicator { background: linear-gradient(135deg, #7c3aed, #a78bfa); left: calc(83.333% + 1px); width: calc(16.666% - 4px); }
+
+        /* 통계 */
+        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; margin-bottom: 0.75rem; }
+        .stat-card { background: white; padding: 0.6rem; border-radius: 8px; box-shadow: var(--shadow); border-left: 3px solid transparent; }
+        .stat-label { font-size: 0.6rem; color: var(--gray-500); }
+        .stat-value { font-size: 1.3rem; font-weight: 700; }
+        .stat-card.new-friend { border-left-color: var(--primary); }
+        .stat-card.settled { border-left-color: var(--success); }
+        .stat-card.intermittent { border-left-color: var(--warning); }
+        .stat-card.danger { border-left-color: var(--danger); }
+        .stat-card.dormant { border-left-color: var(--gray-400); }
+
+        /* 컨트롤 */
+        .controls { background: white; padding: 0.6rem; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+        .search-box { flex: 1; min-width: 150px; position: relative; }
+        .search-box input { width: 100%; padding: 0.5rem 0.6rem 0.5rem 2rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.8rem; font-family: inherit; }
+        .search-box input:focus { outline: none; border-color: var(--primary); }
+        .search-box::before { content: "🔍"; position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; }
+        .filter-group { display: flex; gap: 0.2rem; flex-wrap: wrap; }
+        .filter-btn { padding: 0.35rem 0.6rem; border-radius: 14px; font-size: 0.65rem; font-weight: 500; cursor: pointer; border: 1px solid var(--gray-300); background: white; color: var(--gray-600); font-family: inherit; }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* 테이블 */
+        .table-container { background: white; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 1rem; }
+        .table-header { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
+        .table-title { font-size: 0.9rem; font-weight: 600; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { background: var(--gray-50); padding: 0.5rem 0.4rem; text-align: left; font-weight: 600; color: var(--gray-600); white-space: nowrap; border-bottom: 1px solid var(--gray-200); }
+        td { padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+        .table-container th:nth-child(2), .table-container td:nth-child(2) { text-align: center; }
+        tr:hover { background: var(--gray-50); }
+
+        /* 학생 셀 */
+        .student-cell { display: flex; align-items: center; gap: 0.4rem; min-width: 110px; }
+        .profile-img { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gray-200); }
+        .profile-placeholder { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--gray-200), var(--gray-300)); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--gray-500); }
+        .student-info { display: flex; flex-direction: column; overflow: hidden; }
+        .student-name { font-weight: 600; white-space: nowrap; font-size: 0.75rem; }
+        .student-contact { font-size: 0.6rem; color: var(--gray-500); white-space: nowrap; }
+        .student-contact a { color: var(--primary); text-decoration: none; }
+
+        /* 뱃지 */
+        .status-badge { display: inline-block; padding: 0.15rem 0.4rem; border-radius: 10px; font-size: 0.6rem; font-weight: 600; white-space: nowrap; }
+        .status-badge.new-friend { background: var(--primary-light); color: var(--primary); }
+        .status-badge.settled { background: var(--success-light); color: var(--success); }
+        .status-badge.intermittent { background: var(--warning-light); color: var(--warning); }
+        .status-badge.danger { background: var(--danger-light); color: var(--danger); }
+        .status-badge.dormant { background: var(--gray-200); color: var(--gray-600); }
+
+        .consent-badge { display: inline-flex; padding: 0.12rem 0.35rem; border-radius: 8px; font-size: 0.55rem; font-weight: 600; }
+        .consent-badge.complete { background: var(--success-light); color: var(--success); }
+        .consent-badge.pending { background: var(--warning-light); color: var(--warning); }
+        .consent-badge.none { background: var(--gray-200); color: var(--gray-500); }
+
+        .prayer-badge { display: inline-flex; align-items: center; gap: 0.15rem; padding: 0.1rem 0.3rem; background: var(--purple-light); color: var(--purple); border-radius: 5px; font-size: 0.55rem; cursor: pointer; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* 트랙 */
+        .track-progress { display: flex; gap: 1px; }
+        .track-check { width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; cursor: pointer; font-weight: 600; }
+        .track-check.done { background: var(--success); color: white; }
+        .track-check.pending { background: var(--gray-200); color: var(--gray-400); }
+
+        /* 액션 */
+        .action-btn { padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.65rem; cursor: pointer; border: none; background: var(--gray-100); color: var(--gray-600); }
+        .action-btn:hover { background: var(--primary); color: white; }
+        .action-btn.delete:hover { background: var(--danger); }
+
+        /* 출석부 */
+        .attendance-section { background: white; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+        .attendance-header { padding: 0.75rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
+        .attendance-title { font-size: 1rem; font-weight: 700; }
+        .year-selector { display: flex; align-items: center; gap: 0.2rem; }
+        .year-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--gray-300); background: white; cursor: pointer; font-size: 0.8rem; }
+        .year-display { font-size: 0.9rem; font-weight: 600; min-width: 55px; text-align: center; }
+
+        .month-tabs-container { background: var(--gray-100); }
+        .month-tabs { display: flex; padding: 0.4rem 0.4rem 0; gap: 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .month-tab { padding: 0.4rem 0.6rem; border: none; background: var(--gray-200); font-size: 0.7rem; font-weight: 600; cursor: pointer; border-radius: 6px 6px 0 0; font-family: inherit; color: var(--gray-500); min-width: 45px; text-align: center; flex-shrink: 0; }
+        .month-tab.active { background: white; color: var(--primary); }
+        .month-tab .week-count { font-size: 0.5rem; color: var(--gray-400); display: block; }
+
+        .week-pills-container { background: white; padding: 0.6rem; border-bottom: 1px solid var(--gray-200); display: flex; gap: 0.4rem; overflow-x: auto; -webkit-overflow-scrolling: touch; align-items: center; }
+        .week-pills-label { font-size: 0.65rem; color: var(--gray-500); white-space: nowrap; }
+        .week-pill { padding: 0.35rem 0.6rem; border-radius: 14px; border: 2px solid var(--gray-200); background: white; font-size: 0.65rem; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--gray-600); flex-shrink: 0; }
+        .week-pill.active { background: var(--primary); border-color: var(--primary); color: white; }
+        .week-pill .week-date { font-size: 0.5rem; opacity: 0.8; display: block; }
+
+        .attendance-table-wrapper { overflow-x: auto; padding: 0.6rem; }
+        .attendance-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.7rem; }
+        .attendance-table th { background: var(--gray-50); padding: 0.4rem; text-align: center; font-weight: 600; color: var(--gray-600); border: 1px solid var(--gray-200); }
+        .attendance-table th:first-child { text-align: left; min-width: 90px; }
+        .attendance-table td { padding: 0.35rem; text-align: center; border: 1px solid var(--gray-200); background: white; }
+        .attendance-table td:first-child { text-align: left; background: var(--gray-50); }
+        .attendance-table th:nth-child(2), .attendance-table td:nth-child(2) { text-align: center; }
+
+        .att-student-cell { display: flex; align-items: center; gap: 0.3rem; }
+        .profile-img-sm { width: 24px; height: 24px; min-width: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gray-200); }
+        .profile-placeholder-sm { width: 24px; height: 24px; min-width: 24px; border-radius: 50%; background: var(--gray-200); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: var(--gray-500); }
+
+        .att-check { width: 24px; height: 24px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; }
+        .att-check.present { background: var(--success); color: white; }
+        .att-check.absent { background: var(--gray-200); color: var(--gray-400); }
+        .att-check.late { background: var(--warning); color: white; }
+
+        .summary-row td { background: var(--primary-light) !important; font-weight: 700; color: var(--primary-dark); }
+        .grade-group-header td { color: white !important; padding: 0.35rem !important; font-weight: 600; }
+        .grade-group-header.grade1 td { background: #f97316 !important; }
+        .grade-group-header.grade2 td { background: #f59e0b !important; }
+        .grade-group-header.grade3 td { background: #16a34a !important; }
+        .grade-group-header.grade4 td { background: #0ea5e9 !important; }
+        .grade-group-header.grade5 td { background: #6366f1 !important; }
+        .grade-group-header.grade6 td { background: #7c3aed !important; }
+
+        .dept-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.4rem; padding: 0.75rem; background: var(--gray-50); }
+        .dept-summary-card { background: white; border-radius: 6px; padding: 0.6rem; text-align: center; }
+        .dept-summary-card.grade1 { border-top: 3px solid #f97316; }
+        .dept-summary-card.grade2 { border-top: 3px solid #f59e0b; }
+        .dept-summary-card.grade3 { border-top: 3px solid #16a34a; }
+        .dept-summary-card.grade4 { border-top: 3px solid #0ea5e9; }
+        .dept-summary-card.grade5 { border-top: 3px solid #6366f1; }
+        .dept-summary-card.grade6 { border-top: 3px solid #7c3aed; }
+        .dept-summary-card.total { border-top: 3px solid var(--primary); }
+        .dept-summary-label { font-size: 0.6rem; color: var(--gray-500); }
+        .dept-summary-value { font-size: 1rem; font-weight: 700; }
+        .dept-summary-sub { font-size: 0.55rem; color: var(--gray-400); }
+
+        /* 모달 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 0.5rem; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: 12px; width: 100%; max-width: 500px; max-height: 95vh; overflow-y: auto; }
+        .modal-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: white; z-index: 10; }
+        .modal-title { font-size: 0.95rem; font-weight: 600; }
+        .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray-400); }
+        .modal-body { padding: 1rem; }
+        .form-group { margin-bottom: 0.85rem; }
+        .form-label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--gray-700); margin-bottom: 0.3rem; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 0.55rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.8rem; font-family: inherit; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--primary); }
+        .form-textarea { min-height: 60px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .checkbox-label { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; cursor: pointer; }
+        .checkbox-label input { width: 15px; height: 15px; accent-color: var(--primary); }
+        .modal-footer { padding: 0.6rem 1rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 0.4rem; position: sticky; bottom: 0; background: white; }
+        .section-title { font-size: 0.8rem; font-weight: 600; color: var(--gray-600); margin: 0.85rem 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--gray-200); }
+
+        /* 프로필 업로드 */
+        .profile-upload-wrapper { text-align: center; margin-bottom: 0.85rem; }
+        .profile-upload-area { width: 90px; height: 90px; border: 2px dashed var(--gray-300); border-radius: 50%; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: var(--gray-50); overflow: hidden; position: relative; }
+        .profile-upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
+        .profile-upload-area.has-image { border: 3px solid var(--success); }
+        .profile-upload-area img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-upload-icon { font-size: 1.3rem; }
+        .profile-upload-text { font-size: 0.55rem; color: var(--gray-500); }
+        .profile-remove-btn { position: absolute; top: 0; right: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--danger); color: white; border: none; cursor: pointer; font-size: 0.65rem; }
+
+        /* 동의서 업로드 */
+        .file-upload-area { border: 2px dashed var(--gray-300); border-radius: 8px; padding: 0.85rem; text-align: center; cursor: pointer; background: var(--gray-50); }
+        .file-upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
+        .file-upload-area.has-file { border-color: var(--success); background: var(--success-light); }
+        .file-upload-icon { font-size: 1.3rem; }
+        .file-upload-text { font-size: 0.7rem; color: var(--gray-600); }
+        .file-upload-hint { font-size: 0.6rem; color: var(--gray-400); }
+        .file-input { display: none; }
+        .consent-preview { margin-top: 0.6rem; position: relative; display: inline-block; }
+        .consent-preview img { max-width: 100%; max-height: 120px; border-radius: 6px; border: 1px solid var(--gray-200); }
+        .consent-preview-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--danger); color: white; border: none; cursor: pointer; font-size: 0.6rem; }
+
+        /* 토스트 */
+        .toast { position: fixed; bottom: 1rem; right: 1rem; padding: 0.6rem 1rem; background: var(--gray-800); color: white; border-radius: 6px; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 2000; font-size: 0.8rem; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        /* 반응형 */
+        @media (max-width: 640px) {
+            .main { padding: 0.4rem; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .stat-card { padding: 0.4rem; }
+            .stat-value { font-size: 1.1rem; }
+            .stat-label { font-size: 0.5rem; }
+            .controls { padding: 0.4rem; }
+            .search-box { min-width: 100%; }
+            table { font-size: 0.7rem; }
+            th, td { padding: 0.35rem 0.25rem; }
+            .profile-img, .profile-placeholder { width: 28px; height: 28px; min-width: 28px; }
+            .student-cell { gap: 0.3rem; min-width: 95px; }
+            .student-name { font-size: 0.7rem; }
+            .hide-mobile { display: none !important; }
+            .dept-summary { grid-template-columns: repeat(3, 1fr); }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo"><div class="logo-icon">✝</div><span class="logo-text">주일학교 학생관리</span></div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="exportToExcel()">📊 엑셀</button>
+                <button class="btn btn-primary" onclick="openModal('add')">➕ 등록</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="dept-tabs" data-active="grade1">
+            <button class="dept-tab active" onclick="setDept('grade1', this)">1학년<span class="dept-count" id="grade1-count">0</span></button>
+            <button class="dept-tab" onclick="setDept('grade2', this)">2학년<span class="dept-count" id="grade2-count">0</span></button>
+            <button class="dept-tab" onclick="setDept('grade3', this)">3학년<span class="dept-count" id="grade3-count">0</span></button>
+            <button class="dept-tab" onclick="setDept('grade4', this)">4학년<span class="dept-count" id="grade4-count">0</span></button>
+            <button class="dept-tab" onclick="setDept('grade5', this)">5학년<span class="dept-count" id="grade5-count">0</span></button>
+            <button class="dept-tab" onclick="setDept('grade6', this)">6학년<span class="dept-count" id="grade6-count">0</span></button>
+            <div class="dept-tab-indicator"></div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card new-friend"><div class="stat-label">새친구</div><div class="stat-value" id="stat-new">0</div></div>
+            <div class="stat-card settled"><div class="stat-label">정착</div><div class="stat-value" id="stat-settled">0</div></div>
+            <div class="stat-card intermittent"><div class="stat-label">간헐</div><div class="stat-value" id="stat-intermittent">0</div></div>
+            <div class="stat-card danger"><div class="stat-label">위험</div><div class="stat-value" id="stat-danger">0</div></div>
+            <div class="stat-card dormant"><div class="stat-label">휴면</div><div class="stat-value" id="stat-dormant">0</div></div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header"><span class="table-title">👩‍🏫 담당 교역자/담임</span></div>
+            <div class="table-wrapper" style="padding:0.6rem 0.75rem;">
+                <div style="display:grid;gap:0.4rem;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+                    <div style="background:var(--gray-50);border-radius:8px;padding:0.5rem 0.6rem;">
+                        <div style="font-size:0.65rem;color:var(--gray-500);">담당 전도사</div>
+                        <div style="font-size:0.85rem;font-weight:600;">신승용 전도사</div>
+                    </div>
+                    <div style="background:var(--gray-50);border-radius:8px;padding:0.5rem 0.6rem;">
+                        <div style="font-size:0.65rem;color:var(--gray-500);">1학년 담임</div>
+                        <div style="font-size:0.85rem;font-weight:600;">박영미 선생님</div>
+                    </div>
+                    <div style="background:var(--gray-50);border-radius:8px;padding:0.5rem 0.6rem;">
+                        <div style="font-size:0.65rem;color:var(--gray-500);">2학년 담임</div>
+                        <div style="font-size:0.85rem;font-weight:600;">박영미 선생님</div>
+                    </div>
+                    <div style="background:var(--gray-50);border-radius:8px;padding:0.5rem 0.6rem;">
+                        <div style="font-size:0.65rem;color:var(--gray-500);">3학년 담임</div>
+                        <div style="font-size:0.85rem;font-weight:600;">박수나 선생님</div>
+                    </div>
+                    <div style="background:var(--gray-50);border-radius:8px;padding:0.5rem 0.6rem;">
+                        <div style="font-size:0.65rem;color:var(--gray-500);">4학년 담임</div>
+                        <div style="font-size:0.85rem;font-weight:600;">이주희 선생님</div>
+                    </div>
+                    <div style="background:var(--gray-50);border-radius:8px;padding:0.5rem 0.6rem;">
+                        <div style="font-size:0.65rem;color:var(--gray-500);">5학년 담임</div>
+                        <div style="font-size:0.85rem;font-weight:600;">심미래 선생님</div>
+                    </div>
+                    <div style="background:var(--gray-50);border-radius:8px;padding:0.5rem 0.6rem;">
+                        <div style="font-size:0.65rem;color:var(--gray-500);">6학년 담임</div>
+                        <div style="font-size:0.85rem;font-weight:600;">김은경 선생님</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="search-box"><input type="text" id="searchInput" placeholder="이름, 담당교사 검색..." onkeyup="filterStudents()"></div>
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="setFilter('all', this)">전체</button>
+                <button class="filter-btn" onclick="setFilter('새친구', this)">새친구</button>
+                <button class="filter-btn" onclick="setFilter('정착', this)">정착</button>
+                <button class="filter-btn" onclick="setFilter('간헐', this)">간헐</button>
+                <button class="filter-btn" onclick="setFilter('위험', this)">위험</button>
+                <button class="filter-btn" onclick="setFilter('휴면', this)">휴면</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header"><span class="table-title">📋 학생 목록</span><span id="studentCount">0명</span></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>학생</th><th>학년</th><th>상태</th><th class="hide-mobile">출석</th><th>결석</th><th class="hide-mobile">담당</th><th>동의</th><th class="hide-mobile">기도</th><th>트랙</th><th>액션</th></tr></thead>
+                    <tbody id="studentTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="attendance-section">
+            <div class="attendance-header">
+                <div class="attendance-title">📅 52주 출석부</div>
+                <div class="year-selector"><button class="year-btn" onclick="changeYear(-1)">◀</button><span class="year-display" id="currentYear">2026</span><button class="year-btn" onclick="changeYear(1)">▶</button></div>
+            </div>
+            <div class="month-tabs-container"><div class="month-tabs" id="monthTabs"></div></div>
+            <div class="week-pills-container"><span class="week-pills-label">주차:</span><div id="weekPills" style="display:flex;gap:0.4rem;"></div></div>
+            <div class="attendance-table-wrapper"><table class="attendance-table" id="attendanceTable"></table></div>
+            <div class="dept-summary">
+                <div class="dept-summary-card grade1"><div class="dept-summary-label">1학년</div><div class="dept-summary-value" id="att-grade1">0/0</div><div class="dept-summary-sub" id="att-grade1-pct">0%</div></div>
+                <div class="dept-summary-card grade2"><div class="dept-summary-label">2학년</div><div class="dept-summary-value" id="att-grade2">0/0</div><div class="dept-summary-sub" id="att-grade2-pct">0%</div></div>
+                <div class="dept-summary-card grade3"><div class="dept-summary-label">3학년</div><div class="dept-summary-value" id="att-grade3">0/0</div><div class="dept-summary-sub" id="att-grade3-pct">0%</div></div>
+                <div class="dept-summary-card grade4"><div class="dept-summary-label">4학년</div><div class="dept-summary-value" id="att-grade4">0/0</div><div class="dept-summary-sub" id="att-grade4-pct">0%</div></div>
+                <div class="dept-summary-card grade5"><div class="dept-summary-label">5학년</div><div class="dept-summary-value" id="att-grade5">0/0</div><div class="dept-summary-sub" id="att-grade5-pct">0%</div></div>
+                <div class="dept-summary-card grade6"><div class="dept-summary-label">6학년</div><div class="dept-summary-value" id="att-grade6">0/0</div><div class="dept-summary-sub" id="att-grade6-pct">0%</div></div>
+                <div class="dept-summary-card total"><div class="dept-summary-label">전체</div><div class="dept-summary-value" id="att-total">0/0</div><div class="dept-summary-sub" id="att-total-pct">0%</div></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="studentModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title" id="modalTitle">학생 등록</span><button class="modal-close" onclick="closeModal()">&times;</button></div>
+            <div class="modal-body">
+                <form id="studentForm">
+                    <div class="profile-upload-wrapper">
+                        <div class="profile-upload-area" id="profileUploadArea" onclick="document.getElementById('profileFile').click()"><span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span></div>
+                        <input type="file" class="file-input" id="profileFile" accept="image/*" onchange="handleProfileUpload(event)">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">학생명 *</label><input type="text" class="form-input" id="name" required></div>
+                        <div class="form-group"><label class="form-label">학년 *</label><select class="form-select" id="grade" required><option value="">선택</option><option value="1학년">1학년</option><option value="2학년">2학년</option><option value="3학년">3학년</option><option value="4학년">4학년</option><option value="5학년">5학년</option><option value="6학년">6학년</option></select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">보호자 연락처</label><input type="tel" class="form-input" id="parentContact" placeholder="010-0000-0000"></div>
+                        <div class="form-group"><label class="form-label">학생 연락처</label><input type="tel" class="form-input" id="studentContact" placeholder="010-0000-0000"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">첫 방문일</label><input type="date" class="form-input" id="firstVisit"></div>
+                        <div class="form-group"><label class="form-label">상태</label><select class="form-select" id="status"><option value="새친구">새친구</option><option value="정착">정착</option><option value="간헐">간헐</option><option value="위험">위험</option><option value="휴면">휴면</option></select></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">소그룹/담당교사</label><input type="text" class="form-input" id="owner" placeholder="담당 교사명"></div>
+                    <div class="section-title">🙏 기도제목</div>
+                    <div class="form-group"><textarea class="form-textarea" id="prayer" placeholder="이 친구를 위해 기도하는 내용..."></textarea></div>
+                    <div class="section-title">📋 학부모 동의서</div>
+                    <div class="form-group">
+                        <div class="checkbox-group" style="margin-bottom:0.6rem;"><label class="checkbox-label"><input type="checkbox" id="consentChecked"> 동의서 수령 완료</label></div>
+                        <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('consentFile').click()"><div class="file-upload-icon">📄</div><div class="file-upload-text">동의서 사진 첨부</div><div class="file-upload-hint">클릭하여 업로드</div></div>
+                        <input type="file" class="file-input" id="consentFile" accept="image/*" onchange="handleConsentUpload(event)">
+                        <div class="consent-preview" id="consentPreview" style="display:none;"><img id="consentPreviewImg" src=""><button type="button" class="consent-preview-remove" onclick="removeConsentImage()">✕</button></div>
+                    </div>
+                    <div class="section-title">📊 케어 정보</div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">최근 출석일</label><input type="date" class="form-input" id="lastAttend"></div>
+                        <div class="form-group"><label class="form-label">연속 결석 주</label><input type="number" class="form-input" id="absenceWeeks" value="0" min="0"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">마지막 연락일</label><input type="date" class="form-input" id="lastContact"></div>
+                        <div class="form-group"><label class="form-label">연락 방법</label><select class="form-select" id="contactMethod"><option value="">선택</option><option value="문자">문자</option><option value="전화">전화</option><option value="카톡">카톡</option><option value="방문">방문</option></select></div>
+                    </div>
+                    <div class="section-title">⚠️ 이탈 이유</div>
+                    <div class="form-group"><div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" name="reason" value="학원"> 학원</label>
+                        <label class="checkbox-label"><input type="checkbox" name="reason" value="거리"> 거리</label>
+                        <label class="checkbox-label"><input type="checkbox" name="reason" value="친구"> 친구</label>
+                        <label class="checkbox-label"><input type="checkbox" name="reason" value="적응"> 적응</label>
+                        <label class="checkbox-label"><input type="checkbox" name="reason" value="가정"> 가정</label>
+                        <label class="checkbox-label"><input type="checkbox" name="reason" value="건강"> 건강</label>
+                    </div></div>
+                    <div class="form-group"><label class="form-label">메모</label><textarea class="form-textarea" id="memo" placeholder="특이사항..."></textarea></div>
+                    <div class="section-title">✅ 새친구 4주 트랙</div>
+                    <div class="form-group"><div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" id="track1"> 0주:기록</label>
+                        <label class="checkbox-label"><input type="checkbox" id="track2"> 1주:메시지</label>
+                        <label class="checkbox-label"><input type="checkbox" id="track3"> 2주:버디</label>
+                        <label class="checkbox-label"><input type="checkbox" id="track4"> 4주:소그룹</label>
+                    </div></div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">취소</button><button class="btn btn-primary" onclick="saveStudent()">저장</button></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let students = JSON.parse(localStorage.getItem('ssStudents3')) || [];
+        let attendance = JSON.parse(localStorage.getItem('ssAttendance3')) || {};
+        let currentDept = 'grade1', currentFilter = 'all', editingId = null;
+        let currentYear = 2026, currentMonth = 1, currentWeek = 1;
+        let currentProfileImage = null, currentConsentImage = null;
+
+        const GRADE_OWNERS = { '1학년':'박영미 선생님', '2학년':'박영미 선생님', '3학년':'박수나 선생님', '4학년':'이주희 선생님', '5학년':'심미래 선생님', '6학년':'김은경 선생님' };
+        function migrateOwnersToGradeTeachers() {
+            let changed = false;
+            students = students.map(s => {
+                const defaultOwner = GRADE_OWNERS[s.grade];
+                const isOldStyle = !s.owner || /^[가-힣]+교사\s*$/.test(s.owner) || s.owner === '이교사' || s.owner === '김교사' || s.owner === '박교사' || s.owner === '최교사';
+                if (defaultOwner && isOldStyle) { changed = true; return { ...s, owner: defaultOwner }; }
+                return s;
+            });
+            if (changed) saveToStorage();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (students.length === 0) { students = getSampleData(); saveToStorage(); }
+            else migrateOwnersToGradeTeachers();
+            renderMonthTabs(); renderWeekPills(); renderAll();
+        });
+
+        function getSampleData() {
+            return [
+                { id: 1, name: '김민준', grade: '1학년', parentContact: '010-1234-5678', studentContact: '', firstVisit: '2025-03-02', status: '정착', lastAttend: '2025-12-29', absenceWeeks: 0, owner: '박영미 선생님', lastContact: '2025-12-29', contactMethod: '카톡', reasons: [], memo: '', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '믿음이 자라도록' },
+                { id: 2, name: '박서연', grade: '2학년', parentContact: '010-2345-6789', studentContact: '', firstVisit: '2025-12-15', status: '새친구', lastAttend: '2025-12-22', absenceWeeks: 1, owner: '박영미 선생님', lastContact: '2025-12-16', contactMethod: '문자', reasons: [], memo: '친구따라옴', track: [true,true,false,false], consentChecked: false, consentImage: null, profileImage: null, prayer: '교회적응' },
+                { id: 3, name: '이지훈', grade: '5학년', parentContact: '010-3456-7890', studentContact: '010-9999-1234', firstVisit: '2025-06-02', status: '위험', lastAttend: '2025-12-08', absenceWeeks: 3, owner: '심미래 선생님', lastContact: '2025-12-15', contactMethod: '전화', reasons: ['학원'], memo: '주말학원', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '시간조정' },
+                { id: 4, name: '최수아', grade: '4학년', parentContact: '010-4567-8901', studentContact: '010-8888-5678', firstVisit: '2025-03-10', status: '간헐', lastAttend: '2025-12-15', absenceWeeks: 2, owner: '이주희 선생님', lastContact: '2025-12-20', contactMethod: '카톡', reasons: ['거리'], memo: '격주출석', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '' },
+                { id: 5, name: '정하윤', grade: '3학년', parentContact: '010-6789-0123', studentContact: '', firstVisit: '2025-09-01', status: '정착', lastAttend: '2025-12-29', absenceWeeks: 0, owner: '박수나 선생님', lastContact: '2025-12-29', contactMethod: '카톡', reasons: [], memo: '', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '학교생활' },
+                { id: 6, name: '한시우', grade: '6학년', parentContact: '010-0123-4567', studentContact: '010-5555-4567', firstVisit: '2025-02-09', status: '정착', lastAttend: '2025-12-29', absenceWeeks: 0, owner: '김은경 선생님', lastContact: '2025-12-29', contactMethod: '카톡', reasons: [], memo: '리더', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '리더십' },
+            ];
+        }
+
+        function getDept(g) { const n = parseInt(g); return `grade${n}`; }
+        function getGradeNum(g) { return parseInt(g); }
+
+        function renderAll() { renderTable(); updateStats(); updateDeptCounts(); renderAttendanceTable(); }
+
+        function updateDeptCounts() {
+            const c = { grade1: 0, grade2: 0, grade3: 0, grade4: 0, grade5: 0, grade6: 0 };
+            students.forEach(s => c[getDept(s.grade)]++);
+            document.getElementById('grade1-count').textContent = c.grade1;
+            document.getElementById('grade2-count').textContent = c.grade2;
+            document.getElementById('grade3-count').textContent = c.grade3;
+            document.getElementById('grade4-count').textContent = c.grade4;
+            document.getElementById('grade5-count').textContent = c.grade5;
+            document.getElementById('grade6-count').textContent = c.grade6;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('studentTable');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = students.filter(s => getDept(s.grade) === currentDept && (s.name.toLowerCase().includes(search) || (s.owner && s.owner.toLowerCase().includes(search))) && (currentFilter === 'all' || s.status === currentFilter)).sort((a,b) => getGradeNum(a.grade) - getGradeNum(b.grade));
+
+            if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:1.5rem;color:var(--gray-400);">학생 없음</td></tr>'; }
+            else {
+                tbody.innerHTML = filtered.map(s => `<tr>
+                    <td><div class="student-cell">${s.profileImage ? `<img src="${s.profileImage}" class="profile-img">` : '<div class="profile-placeholder">👤</div>'}<div class="student-info"><span class="student-name">${s.name}</span>${s.studentContact ? `<span class="student-contact"><a href="tel:${s.studentContact}">${s.studentContact}</a></span>` : ''}</div></div></td>
+                    <td>${s.grade}</td>
+                    <td><span class="status-badge ${getStatusClass(s.status)}">${s.status}</span></td>
+                    <td class="hide-mobile">${formatDate(s.lastAttend)}</td>
+                    <td style="color:${s.absenceWeeks>=2?'var(--danger)':''};font-weight:${s.absenceWeeks>=2?'600':'400'}">${s.absenceWeeks>0?'⚠️':''}${s.absenceWeeks}주</td>
+                    <td class="hide-mobile" style="white-space:nowrap">${s.owner||'-'}</td>
+                    <td><span class="consent-badge ${s.consentImage?'complete':s.consentChecked?'pending':'none'}" onclick="${s.consentImage?`viewConsent(${s.id})`:''}" style="${s.consentImage?'cursor:pointer':''}">${s.consentImage?'✓완료':s.consentChecked?'대기':'미동의'}</span></td>
+                    <td class="hide-mobile">${s.prayer?`<span class="prayer-badge" onclick="showPrayer(${s.id})" title="${s.prayer}">🙏${s.prayer.substring(0,5)}${s.prayer.length>5?'..':''}</span>`:'-'}</td>
+                    <td><div class="track-progress">${s.track.map((d,i)=>`<div class="track-check ${d?'done':'pending'}" onclick="toggleTrack(${s.id},${i})">${d?'✓':i}</div>`).join('')}</div></td>
+                    <td style="white-space:nowrap"><button class="action-btn" onclick="openModal('edit',${s.id})">✏️</button><button class="action-btn" onclick="markContact(${s.id})">📞</button><button class="action-btn delete" onclick="deleteStudent(${s.id})">🗑️</button></td>
+                </tr>`).join('');
+            }
+            document.getElementById('studentCount').textContent = `${filtered.length}명`;
+        }
+
+        function updateStats() {
+            const ds = students.filter(s => getDept(s.grade) === currentDept);
+            const st = { '새친구':0,'정착':0,'간헐':0,'위험':0,'휴면':0 };
+            ds.forEach(s => { if(st[s.status]!==undefined) st[s.status]++; });
+            document.getElementById('stat-new').textContent = st['새친구'];
+            document.getElementById('stat-settled').textContent = st['정착'];
+            document.getElementById('stat-intermittent').textContent = st['간헐'];
+            document.getElementById('stat-danger').textContent = st['위험'];
+            document.getElementById('stat-dormant').textContent = st['휴면'];
+        }
+
+        function getStatusClass(s) { return {'새친구':'new-friend','정착':'settled','간헐':'intermittent','위험':'danger','휴면':'dormant'}[s]||''; }
+        function formatDate(d) { if(!d)return'-'; const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
+
+        const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+        function getSundaysInMonth(y,m) { const suns=[]; const d=new Date(y,m-1,1); while(d.getDay()!==0)d.setDate(d.getDate()+1); while(d.getMonth()===m-1){suns.push(new Date(d));d.setDate(d.getDate()+7);} return suns; }
+        function renderMonthTabs() { document.getElementById('monthTabs').innerHTML = monthNames.map((n,i)=>{const suns=getSundaysInMonth(currentYear,i+1);return `<button class="month-tab ${i+1===currentMonth?'active':''}" onclick="setMonth(${i+1})">${n}<span class="week-count">${suns.length}주</span></button>`;}).join(''); }
+        function renderWeekPills() { const suns=getSundaysInMonth(currentYear,currentMonth); document.getElementById('weekPills').innerHTML = suns.map((sun,i)=>{const w=i+1;return `<button class="week-pill ${w===currentWeek?'active':''}" onclick="setWeek(${w})">${w}주<span class="week-date">${sun.getMonth()+1}/${sun.getDate()}</span></button>`;}).join(''); }
+
+        function renderAttendanceTable() {
+            const tbl=document.getElementById('attendanceTable'); const suns=getSundaysInMonth(currentYear,currentMonth); const wk=suns[currentWeek-1]?`${currentYear}-${currentMonth}-${currentWeek}`:null;
+            const keys=['grade1','grade2','grade3','grade4','grade5','grade6'];
+            const grps=keys.reduce((acc,k)=>{acc[k]=students.filter(s=>getDept(s.grade)===k).sort((a,b)=>getGradeNum(a.grade)-getGradeNum(b.grade));return acc;},{});
+            const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};
+            let html='<thead><tr><th>학생</th><th>학년</th><th>담당</th><th>출석</th></tr></thead><tbody>';
+            let tp=0,tt=0; const ds=keys.reduce((acc,k)=>{acc[k]={p:0,t:0};return acc;},{});
+            keys.forEach(dept=>{if(grps[dept].length===0)return; html+=`<tr class="grade-group-header ${dept}"><td colspan="4">${dn[dept]} (${grps[dept].length}명)</td></tr>`;
+                grps[dept].forEach(s=>{const ak=`${wk}-${s.id}`;const as=attendance[ak]||'absent';if(as==='present'){tp++;ds[dept].p++;}tt++;ds[dept].t++;
+                    html+=`<tr><td><div class="att-student-cell">${s.profileImage?`<img src="${s.profileImage}" class="profile-img-sm">`:'<div class="profile-placeholder-sm">👤</div>'}<strong>${s.name}</strong></div></td><td>${s.grade}</td><td>${s.owner||'-'}</td><td><div class="att-check ${as}" onclick="toggleAttendance('${ak}')">${as==='present'?'✓':as==='late'?'⏰':'✗'}</div></td></tr>`;
+                });
+                const pct=ds[dept].t>0?Math.round(ds[dept].p/ds[dept].t*100):0; html+=`<tr class="summary-row"><td colspan="3">${dn[dept]} 소계</td><td>${ds[dept].p}/${ds[dept].t} (${pct}%)</td></tr>`;
+            });
+            const tpct=tt>0?Math.round(tp/tt*100):0; html+=`<tr class="summary-row"><td colspan="3"><strong>📊 전체</strong></td><td><strong>${tp}/${tt} (${tpct}%)</strong></td></tr></tbody>`;
+            tbl.innerHTML=html; updateAttendanceSummary(ds,tp,tt);
+        }
+
+        function updateAttendanceSummary(ds,tp,tt) { ['grade1','grade2','grade3','grade4','grade5','grade6'].forEach(d=>{const st=ds[d];const pct=st.t>0?Math.round(st.p/st.t*100):0;document.getElementById(`att-${d}`).textContent=`${st.p}/${st.t}`;document.getElementById(`att-${d}-pct`).textContent=`${pct}%`;}); const tpct=tt>0?Math.round(tp/tt*100):0; document.getElementById('att-total').textContent=`${tp}/${tt}`; document.getElementById('att-total-pct').textContent=`${tpct}%`; }
+        function toggleAttendance(k) { const c=attendance[k]||'absent'; attendance[k]=c==='absent'?'present':c==='present'?'late':'absent'; localStorage.setItem('ssAttendance3',JSON.stringify(attendance)); renderAttendanceTable(); }
+        function changeYear(d) { currentYear+=d; document.getElementById('currentYear').textContent=currentYear; currentWeek=1; renderMonthTabs(); renderWeekPills(); renderAttendanceTable(); }
+        function setMonth(m) { currentMonth=m; currentWeek=1; document.querySelectorAll('.month-tab').forEach((t,i)=>t.classList.toggle('active',i+1===m)); renderWeekPills(); renderAttendanceTable(); }
+        function setWeek(w) { currentWeek=w; document.querySelectorAll('.week-pill').forEach((p,i)=>p.classList.toggle('active',i+1===w)); renderAttendanceTable(); }
+
+        function setDept(d,btn) { currentDept=d; document.querySelectorAll('.dept-tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); document.querySelector('.dept-tabs').dataset.active=d; renderTable(); updateStats(); }
+        function setFilter(f,btn) { currentFilter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderTable(); }
+        function filterStudents() { renderTable(); }
+
+        function openModal(mode,id=null) {
+            const modal=document.getElementById('studentModal'),form=document.getElementById('studentForm'); form.reset(); document.querySelectorAll('input[name="reason"]').forEach(cb=>cb.checked=false);
+            currentProfileImage=null;currentConsentImage=null; document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>'; document.getElementById('profileUploadArea').classList.remove('has-image'); document.getElementById('consentPreview').style.display='none'; document.getElementById('fileUploadArea').classList.remove('has-file');
+            if(mode==='edit'&&id){editingId=id;document.getElementById('modalTitle').textContent='학생 정보 수정';const s=students.find(st=>st.id===id);if(s){document.getElementById('name').value=s.name;document.getElementById('grade').value=s.grade;document.getElementById('parentContact').value=s.parentContact||'';document.getElementById('studentContact').value=s.studentContact||'';document.getElementById('firstVisit').value=s.firstVisit||'';document.getElementById('status').value=s.status;document.getElementById('owner').value=s.owner||'';document.getElementById('prayer').value=s.prayer||'';document.getElementById('lastAttend').value=s.lastAttend||'';document.getElementById('absenceWeeks').value=s.absenceWeeks;document.getElementById('lastContact').value=s.lastContact||'';document.getElementById('contactMethod').value=s.contactMethod||'';document.getElementById('memo').value=s.memo||'';document.getElementById('consentChecked').checked=s.consentChecked||false;if(s.profileImage){currentProfileImage=s.profileImage;document.getElementById('profileUploadArea').innerHTML=`<img src="${s.profileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}if(s.consentImage){currentConsentImage=s.consentImage;document.getElementById('consentPreviewImg').src=s.consentImage;document.getElementById('consentPreview').style.display='inline-block';document.getElementById('fileUploadArea').classList.add('has-file');}s.reasons?.forEach(r=>{const cb=document.querySelector(`input[name="reason"][value="${r}"]`);if(cb)cb.checked=true;});document.getElementById('track1').checked=s.track[0];document.getElementById('track2').checked=s.track[1];document.getElementById('track3').checked=s.track[2];document.getElementById('track4').checked=s.track[3];}}else{editingId=null;document.getElementById('modalTitle').textContent='학생 등록';document.getElementById('firstVisit').value=new Date().toISOString().split('T')[0];}
+            modal.classList.add('active');
+        }
+        function closeModal() { document.getElementById('studentModal').classList.remove('active'); editingId=null; }
+
+        async function handleProfileUpload(e) { const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024){showToast('5MB초과','error');return;}if(!f.type.startsWith('image/')){showToast('이미지만','error');return;} try{const dataUrl=await compressImageToMax(f,100*1024);currentProfileImage=dataUrl;document.getElementById('profileUploadArea').innerHTML=`<img src="${currentProfileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}catch(err){showToast('이미지 압축 실패','error');}}
+        function removeProfileImage() { currentProfileImage=null;document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>';document.getElementById('profileUploadArea').classList.remove('has-image');document.getElementById('profileFile').value=''; }
+        async function handleConsentUpload(e) { const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024){showToast('5MB초과','error');return;}if(!f.type.startsWith('image/')){showToast('이미지만','error');return;} try{const dataUrl=await compressImageToMax(f,100*1024);currentConsentImage=dataUrl;document.getElementById('consentPreviewImg').src=currentConsentImage;document.getElementById('consentPreview').style.display='inline-block';document.getElementById('fileUploadArea').classList.add('has-file');document.getElementById('consentChecked').checked=true;}catch(err){showToast('이미지 압축 실패','error');}}
+        async function compressImageToMax(file, maxBytes){const img=await readImage(file);const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas');let {width,height}=img;const maxDim=900; if(Math.max(width,height)>maxDim){const scale=maxDim/Math.max(width,height);width=Math.round(width*scale);height=Math.round(height*scale);}canvas.width=width;canvas.height=height;ctx.drawImage(img,0,0,width,height);let quality=0.8;let dataUrl=canvas.toDataURL('image/jpeg',quality);while(dataUrl.length*0.75>maxBytes&&quality>0.4){quality-=0.1;dataUrl=canvas.toDataURL('image/jpeg',quality);}while(dataUrl.length*0.75>maxBytes&&Math.max(width,height)>420){width=Math.round(width*0.85);height=Math.round(height*0.85);canvas.width=width;canvas.height=height;ctx.drawImage(img,0,0,width,height);quality=0.7;dataUrl=canvas.toDataURL('image/jpeg',quality);}if(dataUrl.length*0.75>maxBytes){throw new Error('too_big');}return dataUrl;}
+        function readImage(file){return new Promise((resolve,reject)=>{const img=new Image();const r=new FileReader();r.onload=()=>{img.onload=()=>resolve(img);img.onerror=reject;img.src=r.result;};r.onerror=reject;r.readAsDataURL(file);});}
+        function removeConsentImage() { currentConsentImage=null;document.getElementById('consentPreviewImg').src='';document.getElementById('consentPreview').style.display='none';document.getElementById('fileUploadArea').classList.remove('has-file');document.getElementById('consentFile').value=''; }
+        function viewConsent(id) { const s=students.find(st=>st.id===id);if(s&&s.consentImage){const w=window.open('','_blank');w.document.write(`<html><head><title>${s.name} 동의서</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1f2937;}img{max-width:95vw;max-height:95vh;border-radius:8px;}</style></head><body><img src="${s.consentImage}"></body></html>`);} }
+        function showPrayer(id) { const s=students.find(st=>st.id===id);if(s&&s.prayer){alert(`🙏 ${s.name} 기도제목\n\n${s.prayer}`);} }
+
+        function saveStudent() { const name=document.getElementById('name').value.trim(),grade=document.getElementById('grade').value;if(!name||!grade){showToast('이름/학년 필수','error');return;} const reasons=[];document.querySelectorAll('input[name="reason"]:checked').forEach(cb=>reasons.push(cb.value)); const data={name,grade,parentContact:document.getElementById('parentContact').value,studentContact:document.getElementById('studentContact').value,firstVisit:document.getElementById('firstVisit').value,status:document.getElementById('status').value,owner:document.getElementById('owner').value,prayer:document.getElementById('prayer').value,lastAttend:document.getElementById('lastAttend').value,absenceWeeks:parseInt(document.getElementById('absenceWeeks').value)||0,lastContact:document.getElementById('lastContact').value,contactMethod:document.getElementById('contactMethod').value,reasons,memo:document.getElementById('memo').value,consentChecked:document.getElementById('consentChecked').checked,consentImage:currentConsentImage,profileImage:currentProfileImage,track:[document.getElementById('track1').checked,document.getElementById('track2').checked,document.getElementById('track3').checked,document.getElementById('track4').checked]};if(editingId){const idx=students.findIndex(s=>s.id===editingId);if(idx!==-1)students[idx]={...students[idx],...data};showToast('수정완료','success');}else{data.id=Date.now();students.push(data);showToast('등록완료','success');}saveToStorage();renderAll();closeModal(); }
+        function deleteStudent(id) { if(confirm('삭제?')){students=students.filter(s=>s.id!==id);saveToStorage();renderAll();showToast('삭제됨','success');} }
+        function toggleTrack(id,i) { const s=students.find(st=>st.id===id);if(s){s.track[i]=!s.track[i];saveToStorage();renderTable();} }
+        function markContact(id) { const s=students.find(st=>st.id===id);if(s){s.lastContact=new Date().toISOString().split('T')[0];saveToStorage();renderTable();showToast(`${s.name} 연락기록`,'success');} }
+        function saveToStorage() { localStorage.setItem('ssStudents3',JSON.stringify(students)); }
+
+        function exportToExcel() { const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','동의','기도제목','메모'];const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};let csv='\uFEFF'+h.join(',')+'\n';students.forEach(s=>{const r=[s.name,s.grade,dn[getDept(s.grade)],s.parentContact||'',s.studentContact||'',s.firstVisit||'',s.status,s.lastAttend||'',s.absenceWeeks,s.owner||'',s.lastContact||'',s.consentImage?'완료':s.consentChecked?'대기':'미동의',(s.prayer||'').replace(/,/g,' '),(s.memo||'').replace(/,/g,' ')];csv+=r.map(c=>`"${c}"`).join(',')+'\n';});const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`주일학교_${currentYear}.csv`;link.click();showToast('다운로드','success'); }
+        function showToast(m,t='') { const toast=document.getElementById('toast');toast.textContent=m;toast.className='toast '+t+' show';setTimeout(()=>toast.classList.remove('show'),2500); }
+    </script>
+</body>
+</html>

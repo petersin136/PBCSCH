@@ -221,6 +221,9 @@ export default function Home() {
               </a>
             ))}
           </nav>
+          <a className="admin-key" href="/manage" aria-label="관리자 페이지">
+            🔑
+          </a>
         </header>
         <div className="right-indicators" aria-hidden="true">
           {sections.map((_, idx) => (
@@ -667,7 +670,7 @@ export default function Home() {
 
       <section id="contact" className="py-40 px-8 bg-white text-gray-900" style={{ position: "relative", zIndex: 1 }}>
         <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900" style={{ lineHeight: 1.8 }}>
+          <h2 className="text-2xl md:text-4xl font-bold text-gray-900" style={{ lineHeight: 1.8 }}>
             아이 마음이 궁금하거나,
             <br />
             학부모님도 조심스럽게 여쭤보고 싶은 이야기가 있으신가요?
@@ -676,7 +679,7 @@ export default function Home() {
           </h2>
           <a
             href="mailto:petersin1@hanmail.net"
-            className="inline-block mt-12 bg-black text-white px-12 py-5 rounded-full text-xl font-semibold hover:bg-gray-800 transition"
+            className="inline-block mt-12 bg-black text-white px-10 py-4 rounded-full text-lg md:text-xl font-semibold hover:bg-gray-800 transition"
           >
             전도사님께 이메일 보내기 →
           </a>
@@ -737,7 +740,12 @@ export default function Home() {
           </div>
           <div className="mt-10 pt-6 border-t border-black/10 text-sm text-gray-500 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <span>© {new Date().getFullYear()} PBCSCH. All rights reserved.</span>
-            <span>포천중앙침례교회 주일학교</span>
+            <span className="flex items-center gap-3">
+              포천중앙침례교회 주일학교
+              <a className="admin-key admin-key-footer" href="/manage" aria-label="관리자 페이지">
+                🔑
+              </a>
+            </span>
           </div>
         </div>
       </footer>
@@ -1082,6 +1090,36 @@ export default function Home() {
           padding: 9px clamp(16px, 4vw, 48px);
           border-radius: 0;
           box-shadow: none;
+        }
+
+        .admin-key {
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.18);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          font-size: 14px;
+          line-height: 1;
+          transition: background 0.2s ease, transform 0.2s ease;
+          pointer-events: auto;
+        }
+
+        .admin-key:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: translateY(-1px);
+        }
+
+        .admin-key-footer {
+          width: 24px;
+          height: 24px;
+          background: rgba(0, 0, 0, 0.06);
+          color: #111;
+          border-color: rgba(0, 0, 0, 0.12);
+          font-size: 12px;
         }
 
         .brand {
