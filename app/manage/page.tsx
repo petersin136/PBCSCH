@@ -16,7 +16,18 @@ export default function ManagePage() {
     const savedPw = localStorage.getItem("pbcs_admin_pw") || "";
     if (savedId) setAdminId(savedId);
     if (savedPw) setAdminPw(savedPw);
+    history.pushState({ manage: 1 }, "", window.location.pathname);
   }, []);
+
+  useEffect(() => {
+    if (!authed) return;
+    const onPop = () => {
+      history.pushState({ admin: 1 }, "", window.location.pathname);
+    };
+    history.pushState({ admin: 1 }, "", window.location.pathname);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [authed]);
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,16 +38,6 @@ export default function ManagePage() {
       setError("아이디 또는 비밀번호가 올바르지 않습니다.");
     }
   };
-
-  useEffect(() => {
-    if (!authed) return;
-    const preventBack = () => {
-      history.pushState({ admin: "1" }, "", window.location.pathname);
-    };
-    history.pushState({ admin: "1" }, "", window.location.pathname);
-    window.addEventListener("popstate", preventBack);
-    return () => window.removeEventListener("popstate", preventBack);
-  }, [authed]);
 
   if (authed) {
     return (
