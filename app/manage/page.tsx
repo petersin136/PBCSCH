@@ -14,17 +14,14 @@ export default function ManagePage() {
   useEffect(() => {
     const savedId = localStorage.getItem("pbcs_admin_id") || "";
     const savedPw = localStorage.getItem("pbcs_admin_pw") || "";
-    const savedAuthed = localStorage.getItem("pbcs_admin_authed") === "true";
     if (savedId) setAdminId(savedId);
     if (savedPw) setAdminPw(savedPw);
-    if (savedAuthed) setAuthed(true);
   }, []);
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (adminId === ADMIN_ID && adminPw === ADMIN_PW) {
       setAuthed(true);
-      localStorage.setItem("pbcs_admin_authed", "true");
       setError("");
     } else {
       setError("아이디 또는 비밀번호가 올바르지 않습니다.");
@@ -34,10 +31,18 @@ export default function ManagePage() {
   if (authed) {
     return (
       <div style={{ minHeight: "100vh", background: "#f3f4f6" }}>
+        <div style={{ padding: "8px 16px", background: "#1f2937", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
+          <a
+            href="/"
+            className="text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-600 transition"
+          >
+            메인 홈
+          </a>
+        </div>
         <iframe
           title="학생관리"
           src="/manage/student-management-v3.html"
-          style={{ width: "100%", height: "100vh", border: "none" }}
+          style={{ width: "100%", height: "calc(100vh - 44px)", border: "none" }}
         />
       </div>
     );
