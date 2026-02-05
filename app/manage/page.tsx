@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ADMIN_ID = "PBCSCH";
 const ADMIN_PW = "369369";
@@ -10,6 +10,8 @@ export default function ManagePage() {
   const [adminPw, setAdminPw] = useState("");
   const [error, setError] = useState("");
   const [authed, setAuthed] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const skipModalClosedBackRef = useRef(false);
 
   useEffect(() => {
     const savedId = localStorage.getItem("pbcs_admin_id") || "";
@@ -23,12 +25,33 @@ export default function ManagePage() {
 
   useEffect(() => {
     if (!authed) return;
-    const onPop = () => {
-      history.pushState({ admin: 1 }, "", window.location.pathname);
+    const path = "/manage";
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === "pbcs_modal_opened") {
+        history.pushState({ modal: 1 }, "", path);
+      }
+      if (e.data?.type === "pbcs_modal_closed") {
+        if (skipModalClosedBackRef.current) {
+          skipModalClosedBackRef.current = false;
+          return;
+        }
+        history.back();
+      }
     };
-    history.pushState({ admin: 1 }, "", window.location.pathname);
+    const onPop = () => {
+      if (window.location.pathname === path && iframeRef.current?.contentWindow) {
+        skipModalClosedBackRef.current = true;
+        iframeRef.current.contentWindow.postMessage({ type: "pbcs_close_modal" }, "*");
+      }
+      history.pushState({ admin: 1 }, "", path);
+    };
+    history.pushState({ admin: 1 }, "", path);
+    window.addEventListener("message", onMessage);
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("popstate", onPop);
+    };
   }, [authed]);
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
@@ -55,6 +78,7 @@ export default function ManagePage() {
           </a>
         </div>
         <iframe
+          ref={iframeRef}
           title="학생관리"
           src="/manage/student-management-v3.html"
           style={{ width: "100%", height: "calc(100vh - 44px)", border: "none" }}
