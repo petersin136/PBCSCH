@@ -16,6 +16,8 @@ export default function ManagePage() {
     const savedPw = localStorage.getItem("pbcs_admin_pw") || "";
     if (savedId) setAdminId(savedId);
     if (savedPw) setAdminPw(savedPw);
+    const wasAuthed = sessionStorage.getItem("pbcs_admin_authed") === "1";
+    if (wasAuthed) setAuthed(true);
     history.pushState({ manage: 1 }, "", window.location.pathname);
   }, []);
 
@@ -32,6 +34,7 @@ export default function ManagePage() {
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (adminId === ADMIN_ID && adminPw === ADMIN_PW) {
+      sessionStorage.setItem("pbcs_admin_authed", "1");
       setAuthed(true);
       setError("");
     } else {
@@ -45,6 +48,7 @@ export default function ManagePage() {
         <div style={{ padding: "8px 16px", background: "#1f2937", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
           <a
             href="/"
+            onClick={() => sessionStorage.removeItem("pbcs_admin_authed")}
             className="text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-600 transition"
           >
             메인 홈
