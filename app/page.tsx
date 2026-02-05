@@ -295,7 +295,142 @@ export default function Home() {
         </div>
       </section>
 
+      <section
+        className="relative z-10 flex min-h-[50vh] flex-col items-center justify-center text-center px-4 pt-20 pb-20 md:min-h-screen md:px-8 md:pt-[100px] md:pb-[100px] bg-cover bg-center bg-fixed"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/KakaoTalk_Photo_2026-01-04-00-39-12%20003.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
+        }}
+      >
+        <p
+          className="text-white text-sm md:text-base tracking-[0.3em] md:tracking-[0.4em] mb-6 md:mb-8"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, letterSpacing: "0.4em" }}
+        >
+          포 천 중 앙 침 례 교 회
+        </p>
+        <div className="w-full max-w-3xl h-[1px] bg-white opacity-60 mb-8 md:mb-12" />
+        <h2
+          className="text-white mb-10 md:mb-14"
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 400,
+            fontSize: "clamp(36px, 7vw, 90px)",
+            lineHeight: 1.1,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          Children&apos;s Ministry
+        </h2>
+        <p
+          className="text-white text-lg md:text-xl lg:text-2xl mb-2 font-semibold"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", lineHeight: 1.8 }}
+        >
+          포천중앙침례교회 주일학교는<br className="md:hidden" /> 아이들이 하나님의 사랑을 경험하는 곳입니다.
+        </p>
+        <p
+          className="text-white text-base md:text-lg lg:text-xl mb-1"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
+        >
+          우리는 눈높이에 맞는 예배로 하나님을 만나고,
+        </p>
+        <p
+          className="text-white text-base md:text-lg lg:text-xl mb-1"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
+        >
+          친구들과 함께 웃고 뛰며 믿음 안에서 자라갑니다.
+        </p>
+        <p
+          className="text-white text-base md:text-lg lg:text-xl mb-1"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
+        >
+          말씀을 쉽고 재미있게 배우며,
+        </p>
+        <p
+          className="text-white text-base md:text-lg lg:text-xl mb-10 md:mb-14"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.9 }}
+        >
+          하나님을 사랑하는 어린이로 성장합니다.
+        </p>
+        <p
+          className="text-white text-lg md:text-xl lg:text-2xl font-medium mb-1"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", lineHeight: 1.8 }}
+        >
+          처음 오는 친구도, 오래 다닌 친구도,
+        </p>
+        <p
+          className="text-white text-lg md:text-xl lg:text-2xl font-medium mb-12 md:mb-16"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", lineHeight: 1.8 }}
+        >
+          모두 환영합니다. 함께 신나는 주일을 만들어요!
+        </p>
+        <a
+          href="#worship-times"
+          onClick={(e) => {
+            e.preventDefault();
+            const el = document.getElementById("worship-times");
+            if (el) {
+              const headerHeight = window.innerWidth <= 768 ? 50 : 40;
+              const offset = el.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
+              window.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
+            } else {
+              window.location.hash = "worship-times";
+            }
+            return false;
+          }}
+          className="inline-block border-2 border-white text-white px-6 md:px-10 py-2.5 md:py-3 rounded-lg transition-all duration-300 hover:bg-white hover:text-gray-900 mt-12 md:mt-16"
+          style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 400, fontSize: "13px", letterSpacing: "0.5em" }}
+        >
+          예 배 안 내
+        </a>
+      </section>
+
+      {/* 마키: P.B.C.S.C.H / 주일학교 무지개 반복 */}
+      <section className="marquee-section bg-black py-4 md:py-6" aria-hidden="true">
+        <div className="marquee-track">
+          {[1, 2].map((copy) => (
+            <div
+              key={copy}
+              className="marquee-row font-bold tracking-[0.25em] md:tracking-[0.35em]"
+            >
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-red-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-orange-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-yellow-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-green-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-blue-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-purple-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-pink-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-red-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-orange-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-yellow-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-green-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-blue-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-purple-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-pink-outline">주일학교&nbsp;</span>
+              <span className="color-white">P.B.C.S.C.H&nbsp;</span>
+              <span className="color-red-outline">주일학교&nbsp;</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {sections.map((section, idx) => (
+        <div key={`${section.category}-${idx}-wrap`} id={idx === 0 ? "worship-times" : undefined}>
         <section
           key={`${section.category}-${idx}`}
           id={section.id}
@@ -367,6 +502,7 @@ export default function Home() {
             </div>
           </a>
         </section>
+        </div>
       ))}
 
       <style jsx>{`

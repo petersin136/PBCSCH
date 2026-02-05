@@ -63,6 +63,93 @@ img {
   word-break: keep-all;
 }
 
+/* 마키 색상 클래스 (테두리만) */
+.color-white {
+  color: transparent;
+  -webkit-text-stroke: 2.5px rgba(255, 255, 255, 0.7);
+  paint-order: stroke fill;
+}
+.color-red-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #ff6b6b;
+  paint-order: stroke fill;
+}
+.color-orange-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #ffa94d;
+  paint-order: stroke fill;
+}
+.color-yellow-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #ffe066;
+  paint-order: stroke fill;
+}
+.color-green-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #69db7c;
+  paint-order: stroke fill;
+}
+.color-blue-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #74c0fc;
+  paint-order: stroke fill;
+}
+.color-purple-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #b197fc;
+  paint-order: stroke fill;
+}
+.color-pink-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #f783ac;
+  paint-order: stroke fill;
+}
+
+/* 모바일: 마키 테두리선 더 얇게 */
+@media (max-width: 768px) {
+  .marquee-section .color-white,
+  .marquee-section .color-red-outline,
+  .marquee-section .color-orange-outline,
+  .marquee-section .color-yellow-outline,
+  .marquee-section .color-green-outline,
+  .marquee-section .color-blue-outline,
+  .marquee-section .color-purple-outline,
+  .marquee-section .color-pink-outline {
+    -webkit-text-stroke-width: 1.5px;
+  }
+}
+
+/* 마키 애니메이션 (270초) */
+.marquee-section {
+  overflow: hidden;
+  width: 100%;
+  user-select: none;
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 270s linear infinite;
+}
+.marquee-row {
+  display: flex;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: clamp(3.25rem, 7.8vw, 9.75rem);
+}
+@media (max-width: 768px) {
+  .marquee-row {
+    font-size: clamp(4.25rem, 14vw, 5.5rem);
+  }
+}
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 /* 모바일에서 스크롤바 숨김 - 유격/가로 흔들림 방지 */
 @media (max-width: 900px) {
   html,
