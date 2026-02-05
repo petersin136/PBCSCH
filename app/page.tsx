@@ -187,6 +187,7 @@ export default function Home() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [parentNoticeOpen, setParentNoticeOpen] = useState(false);
   const endVideoRef = useRef<HTMLVideoElement | null>(null);
+  const childrenSectionRef = useRef<HTMLElement | null>(null);
 
   const imagesByIndex = useMemo(() => {
     return sections.map((_, idx) => images[idx % images.length]);
@@ -228,6 +229,20 @@ export default function Home() {
       </span>
     ));
   };
+
+  useEffect(() => {
+    const el = childrenSectionRef.current;
+    if (!el) return;
+    const ob = new IntersectionObserver(
+      (entries) => {
+        const e = entries[0];
+        if (e) (el as HTMLElement).style.zIndex = e.isIntersecting ? "10" : "-1";
+      },
+      { threshold: 0.1 }
+    );
+    ob.observe(el);
+    return () => ob.disconnect();
+  }, []);
 
   useEffect(() => {
     // Handle hash navigation - scroll to section if hash exists
@@ -425,15 +440,24 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        className="relative z-10 flex min-h-[50vh] flex-col items-center justify-center text-center px-4 pt-20 pb-20 md:min-h-screen md:px-8 md:pt-[100px] md:pb-[100px] bg-cover bg-center bg-fixed"
-        style={{
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.68), rgba(255,255,255,0.68)), url('https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/KakaoTalk_Photo_2026-01-04-00-39-12%20003.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-        }}
-      >
+      <section ref={childrenSectionRef} className="relative min-h-[50vh] md:min-h-screen overflow-hidden" style={{ zIndex: -1 }}>
+        {/* 고정 배경 레이어: div로 분리해 iOS Safari에서도 이미지 표시 + 패럴랙스 유지 */}
+        <div
+          aria-hidden
+          className="fixed inset-0 w-full h-full min-h-[100vmin] bg-cover bg-center"
+          style={{
+            backgroundImage: "url('https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/KakaoTalk_Photo_2026-01-04-00-39-12%20003.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            zIndex: -1,
+          }}
+        />
+        <div
+          aria-hidden
+          className="fixed inset-0 w-full h-full min-h-[100vmin]"
+          style={{ backgroundColor: "rgba(255,255,255,0.78)", zIndex: 0 }}
+        />
+        <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-20 pb-20 md:px-8 md:pt-[100px] md:pb-[100px] min-h-[50vh] md:min-h-screen">
         <p
           className="text-gray-900 text-sm md:text-base tracking-[0.3em] md:tracking-[0.4em] mb-6 md:mb-8"
           style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, letterSpacing: "0.4em" }}
@@ -514,6 +538,7 @@ export default function Home() {
         >
           예 배 안 내
         </a>
+        </div>
       </section>
 
       {/* 마키: P.B.C.S.C.H / 주일학교 무지개 반복 */}
