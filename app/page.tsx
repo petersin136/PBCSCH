@@ -432,12 +432,12 @@ export default function Home() {
       {/* 부모님 환영 섹션 */}
       <section
         id="parents-welcome"
-        className="pt-[60px] pb-2 px-6 md:py-[100px] md:px-6"
+        className="pt-[60px] pb-8 px-6 md:py-[100px] md:px-6"
         style={{ background: "linear-gradient(180deg, #FDF8F3 0%, #FFFFFF 100%)" }}
       >
         <div className="mx-auto max-w-[900px]">
           {/* 헤더 */}
-          <div className="mb-8 md:mb-16 text-center">
+          <div className="mb-14 md:mb-16 text-center">
             <p
               className="text-sm mb-4 font-[400]"
               style={{ color: "#4A90D9", letterSpacing: "0.2em", fontFamily: "'Noto Sans KR', sans-serif" }}
@@ -465,7 +465,7 @@ export default function Home() {
           </div>
 
           {/* 3가지 약속 카드 */}
-          <div className="mb-8 md:mb-16 grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-3 auto-rows-fr">
+          <div className="mb-14 md:mb-16 grid gap-6 grid-cols-1 md:grid-cols-3 auto-rows-fr">
             <div
               className="parents-welcome-card rounded-[20px] px-7 py-9 text-center bg-white"
               style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}
@@ -479,7 +479,7 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-[#333] mb-3" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 이름을 기억해요
               </h3>
-              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+              <p className="text-[15px] text-[#666] leading-[1.35] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 한 명 한 명,
                 <br />
                 이름으로 부르고 기억해요.
@@ -498,7 +498,7 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-[#333] mb-3" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 기도로 준비해요
               </h3>
-              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+              <p className="text-[15px] text-[#666] leading-[1.35] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 선생님들은 예배 전
                 <br />
                 아이들 이름을 부르며 기도해요.
@@ -517,7 +517,7 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-[#333] mb-3" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 억지로 시키지 않아요
               </h3>
-              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+              <p className="text-[15px] text-[#666] leading-[1.35] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 기도도, 찬양도, 발표도 강요하지 않아요.
                 <br />
                 아이의 속도에 맞춰 천천히 함께 가요.
@@ -527,7 +527,7 @@ export default function Home() {
 
           {/* Q&A 영역 */}
           <div
-            className="rounded-[24px] p-8 md:p-10 mb-6 md:mb-12 bg-white"
+            className="rounded-[24px] p-8 md:p-10 mb-12 bg-white"
             style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}
           >
             <h3
@@ -536,11 +536,11 @@ export default function Home() {
             >
               자주 묻는 질문
             </h3>
-            <div className="mb-4 pb-4 md:mb-6 md:pb-6 border-b border-[#f0f0f0]">
+            <div className="mb-6 pb-6 border-b border-[#f0f0f0]">
               <p className="text-base font-semibold text-[#333] mb-2" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 Q. 처음 와도 괜찮을까요?
               </p>
-              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+              <p className="text-[15px] text-[#666] leading-[1.35] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 물론이에요! 어색하지 않게 친구들과 어울릴 수 있도록 도와드려요.
               </p>
             </div>
@@ -548,7 +548,7 @@ export default function Home() {
               <p className="text-base font-semibold text-[#333] mb-2" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 Q. 아이가 소심한데요...
               </p>
-              <p className="text-[15px] text-[#666] leading-[1.15] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+              <p className="text-[15px] text-[#666] leading-[1.35] font-light" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
                 괜찮아요. 조용히 앉아 있어도 돼요. 그냥 함께 있는 것만으로 충분해요.
               </p>
             </div>
@@ -581,7 +581,7 @@ export default function Home() {
 
           {/* 마무리 */}
           <p
-            className="text-center mt-4 md:mt-12 text-xl text-[#333] font-medium"
+            className="text-center mt-8 md:mt-12 text-xl text-[#333] font-medium"
             style={{ fontFamily: "'Noto Sans KR', sans-serif" }}
           >
             편하게 보내주세요. 💙
@@ -781,7 +781,7 @@ export default function Home() {
         }
         @media (max-width: 768px) {
           .section {
-            height: 72vh;
+            height: 88vh;
           }
         }
 
@@ -858,7 +858,7 @@ export default function Home() {
         }
         @media (max-width: 768px) {
           .card-content {
-            gap: clamp(4px, 0.6vw, 8px);
+            gap: clamp(9px, 1.1vw, 14px);
           }
         }
 
