@@ -348,9 +348,6 @@ export default function Home() {
               </a>
             ))}
           </nav>
-          <a className="admin-key" href="/manage" aria-label="관리자 페이지">
-            🔑
-          </a>
         </header>
         <div className="right-indicators" aria-hidden="true">
           {sections.map((_, idx) => (
@@ -930,7 +927,7 @@ export default function Home() {
             <span className="flex items-center gap-3">
               포천중앙침례교회 주일학교
               <a className="admin-key admin-key-footer" href="/manage" aria-label="관리자 페이지">
-                🔑
+                🔒
               </a>
             </span>
           </div>
