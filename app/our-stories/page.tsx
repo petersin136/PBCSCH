@@ -596,8 +596,9 @@ export default function OurStoriesPage() {
           border: none;
           background: #fff;
           border-radius: 0;
-          padding: 16px 16px 20px;
+          padding: 12px 12px 14px;
           text-align: left;
+          min-width: 0;
           box-shadow:
             0 24px 48px rgba(0, 0, 0, 0.14),
             0 12px 24px rgba(0, 0, 0, 0.1),
@@ -624,7 +625,7 @@ export default function OurStoriesPage() {
           justify-content: center;
           font-size: 14px;
           color: #555;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
           background: #e8e4df;
         }
 
@@ -638,18 +639,23 @@ export default function OurStoriesPage() {
           font-size: 13px;
           color: #888;
           margin-bottom: 0;
+          max-width: 100%;
+          overflow: hidden;
+          word-break: break-word;
+          min-width: 0;
         }
 
         .polaroid-caption-handwriting {
           font-family: "Nanum Pen Script", cursive;
-          font-size: 18px;
+          font-size: 16px;
           color: #333;
-          margin-top: 4px;
+          margin-top: 2px;
+          line-height: 1.35;
         }
 
         .polaroid-date {
           font-family: "Noto Sans KR", sans-serif;
-          font-size: 13px;
+          font-size: 12px;
           color: #888;
           font-weight: 400;
         }
@@ -848,6 +854,24 @@ export default function OurStoriesPage() {
 
           .polaroid-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+          }
+
+          .polaroid {
+            padding: 8px 8px 10px;
+          }
+
+          .polaroid-image {
+            margin-bottom: 6px;
+          }
+
+          .polaroid-caption-handwriting {
+            font-size: 13px;
+            line-height: 1.3;
+          }
+
+          .polaroid-date {
+            font-size: 11px;
           }
         }
       `}</style>
