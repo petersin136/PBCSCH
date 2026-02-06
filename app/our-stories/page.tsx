@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface GalleryFile {
   id: string;
@@ -36,6 +36,7 @@ export default function OurStoriesPage() {
   const [files, setFiles] = useState<GalleryFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lightboxStatePushedRef = useRef(false);
 
   useEffect(() => {
     setLoading(true);
@@ -70,9 +71,27 @@ export default function OurStoriesPage() {
   const openLightbox = (index: number) => {
     if (files.length === 0) return;
     setLightboxIndex(index);
+    history.pushState({ lightbox: true }, "", window.location.href);
+    lightboxStatePushedRef.current = true;
   };
 
-  const closeLightbox = () => setLightboxIndex(null);
+  const closeLightbox = () => {
+    if (lightboxStatePushedRef.current) {
+      lightboxStatePushedRef.current = false;
+      history.back();
+    } else {
+      setLightboxIndex(null);
+    }
+  };
+
+  useEffect(() => {
+    const onPopState = () => {
+      lightboxStatePushedRef.current = false;
+      setLightboxIndex(null);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const lightboxPrev = () => {
     if (lightboxIndex === null || files.length === 0) return;
