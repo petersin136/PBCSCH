@@ -27,7 +27,8 @@ function thumbnailUrl(fileId: string, sz: "w400" | "w1200" = "w400"): string {
   return `https://drive.google.com/thumbnail?id=${fileId}&sz=${sz}`;
 }
 
-const PER_PAGE = 8;
+const DESKTOP_PER_PAGE = 8;
+const MOBILE_PER_PAGE = 6;
 
 export default function OurStoriesPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -37,6 +38,15 @@ export default function OurStoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lightboxStatePushedRef = useRef(false);
+  const [perPage, setPerPage] = useState(DESKTOP_PER_PAGE);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const update = () => setPerPage(mq.matches ? MOBILE_PER_PAGE : DESKTOP_PER_PAGE);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -51,11 +61,11 @@ export default function OurStoriesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(files.length / PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(files.length / perPage));
   const pageItems = useMemo(() => {
-    const start = (currentPage - 1) * PER_PAGE;
-    return files.slice(start, start + PER_PAGE);
-  }, [currentPage, files]);
+    const start = (currentPage - 1) * perPage;
+    return files.slice(start, start + perPage);
+  }, [currentPage, files, perPage]);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages >= 1) {
@@ -64,7 +74,7 @@ export default function OurStoriesPage() {
   }, [currentPage, totalPages]);
 
   const goToPage = (page: number) => {
-    const total = Math.max(1, Math.ceil(files.length / PER_PAGE));
+    const total = Math.max(1, Math.ceil(files.length / perPage));
     setCurrentPage(Math.min(Math.max(page, 1), total));
   };
 
@@ -232,7 +242,7 @@ export default function OurStoriesPage() {
                       className="polaroid"
                       type="button"
                       onClick={() =>
-                        openLightbox((currentPage - 1) * PER_PAGE + index)
+                        openLightbox((currentPage - 1) * perPage + index)
                       }
                     >
                       <div className="polaroid-image">
@@ -873,15 +883,18 @@ export default function OurStoriesPage() {
 
           .polaroid-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
+            gap: 14px;
           }
 
           .polaroid {
-            padding: 8px 8px 10px;
+            padding: 6px 6px 8px;
+            max-width: 152px;
+            justify-self: center;
+            margin: 0 auto;
           }
 
           .polaroid-image {
-            margin-bottom: 6px;
+            margin-bottom: 5px;
           }
 
           .polaroid-caption-handwriting {
