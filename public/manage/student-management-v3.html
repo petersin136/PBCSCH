@@ -417,43 +417,69 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        let students = JSON.parse(localStorage.getItem('ssStudents3')) || [];
-        let attendance = JSON.parse(localStorage.getItem('ssAttendance3')) || {};
+        /* ===== 상태 변수 ===== */
+        let students = [];
+        let attendance = {};
         let currentDept = 'grade1', currentFilter = 'all', editingId = null;
         let currentYear = 2026, currentMonth = 1, currentWeek = 1;
         let currentProfileImage = null, currentConsentImage = null;
+        let dbReady = false;
 
         const GRADE_OWNERS = { '1학년':'박영미 선생님', '2학년':'박영미 선생님', '3학년':'박수나 선생님', '4학년':'이주희 선생님', '5학년':'심미래 선생님', '6학년':'김은경 선생님' };
-        function migrateOwnersToGradeTeachers() {
-            let changed = false;
-            students = students.map(s => {
-                const defaultOwner = GRADE_OWNERS[s.grade];
-                const isOldStyle = !s.owner || /^[가-힣]+교사\s*$/.test(s.owner) || s.owner === '이교사' || s.owner === '김교사' || s.owner === '박교사' || s.owner === '최교사';
-                if (defaultOwner && isOldStyle) { changed = true; return { ...s, owner: defaultOwner }; }
-                return s;
-            });
-            if (changed) saveToStorage();
+
+        /* ===== DB 로드 (Supabase API) ===== */
+        async function loadFromDB() {
+            try {
+                const [sRes, aRes] = await Promise.all([
+                    fetch('/api/students'),
+                    fetch('/api/attendance')
+                ]);
+                if (sRes.ok) { students = await sRes.json(); dbReady = true; }
+                else { throw new Error('students fetch failed'); }
+                if (aRes.ok) { const data = await aRes.json(); attendance = data.records || {}; }
+            } catch(e) {
+                console.warn('DB 로드 실패, 빈 상태로 시작:', e);
+                students = [];
+                attendance = {};
+                dbReady = false;
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (students.length > 0) migrateOwnersToGradeTeachers();
+        /* ===== DB 저장 헬퍼 ===== */
+        async function apiSaveStudent(student) {
+            try {
+                const res = await fetch('/api/students', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(student) });
+                if (!res.ok) showToast('서버 저장 실패', 'error');
+            } catch(e) { showToast('서버 연결 실패', 'error'); }
+        }
+        async function apiCreateStudent(student) {
+            try {
+                const res = await fetch('/api/students', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(student) });
+                if (!res.ok) showToast('서버 등록 실패', 'error');
+            } catch(e) { showToast('서버 연결 실패', 'error'); }
+        }
+        async function apiDeleteStudent(id) {
+            try {
+                const res = await fetch('/api/students?id=' + id, { method: 'DELETE' });
+                if (!res.ok) showToast('서버 삭제 실패', 'error');
+            } catch(e) { showToast('서버 연결 실패', 'error'); }
+        }
+        async function apiSaveAttendance(key, status) {
+            try {
+                const res = await fetch('/api/attendance', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key, status }) });
+                if (!res.ok) showToast('출석 저장 실패', 'error');
+            } catch(e) { showToast('서버 연결 실패', 'error'); }
+        }
+
+        /* ===== 초기화 ===== */
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadFromDB();
             renderMonthTabs(); renderWeekPills(); renderAll();
         });
 
-        function getSampleData() {
-            return [
-                { id: 1, name: '김민준', grade: '1학년', parentContact: '010-1234-5678', studentContact: '', firstVisit: '2025-03-02', status: '정착', lastAttend: '2025-12-29', absenceWeeks: 0, owner: '박영미 선생님', lastContact: '2025-12-29', contactMethod: '카톡', reasons: [], memo: '', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '믿음이 자라도록' },
-                { id: 2, name: '박서연', grade: '2학년', parentContact: '010-2345-6789', studentContact: '', firstVisit: '2025-12-15', status: '새친구', lastAttend: '2025-12-22', absenceWeeks: 1, owner: '박영미 선생님', lastContact: '2025-12-16', contactMethod: '문자', reasons: [], memo: '친구따라옴', track: [true,true,false,false], consentChecked: false, consentImage: null, profileImage: null, prayer: '교회적응' },
-                { id: 3, name: '이지훈', grade: '5학년', parentContact: '010-3456-7890', studentContact: '010-9999-1234', firstVisit: '2025-06-02', status: '위험', lastAttend: '2025-12-08', absenceWeeks: 3, owner: '심미래 선생님', lastContact: '2025-12-15', contactMethod: '전화', reasons: ['학원'], memo: '주말학원', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '시간조정' },
-                { id: 4, name: '최수아', grade: '4학년', parentContact: '010-4567-8901', studentContact: '010-8888-5678', firstVisit: '2025-03-10', status: '간헐', lastAttend: '2025-12-15', absenceWeeks: 2, owner: '이주희 선생님', lastContact: '2025-12-20', contactMethod: '카톡', reasons: ['거리'], memo: '격주출석', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '' },
-                { id: 5, name: '정하윤', grade: '3학년', parentContact: '010-6789-0123', studentContact: '', firstVisit: '2025-09-01', status: '정착', lastAttend: '2025-12-29', absenceWeeks: 0, owner: '박수나 선생님', lastContact: '2025-12-29', contactMethod: '카톡', reasons: [], memo: '', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '학교생활' },
-                { id: 6, name: '한시우', grade: '6학년', parentContact: '010-0123-4567', studentContact: '010-5555-4567', firstVisit: '2025-02-09', status: '정착', lastAttend: '2025-12-29', absenceWeeks: 0, owner: '김은경 선생님', lastContact: '2025-12-29', contactMethod: '카톡', reasons: [], memo: '리더', track: [true,true,true,true], consentChecked: true, consentImage: null, profileImage: null, prayer: '리더십' },
-            ];
-        }
-
+        /* ===== 유틸 ===== */
         function getDept(g) { const n = parseInt(g); return `grade${n}`; }
         function getGradeNum(g) { return parseInt(g); }
-
         function renderAll() { renderTable(); updateStats(); updateDeptCounts(); renderAttendanceTable(); }
 
         function updateDeptCounts() {
@@ -504,6 +530,7 @@
         function getStatusClass(s) { return {'새친구':'new-friend','정착':'settled','간헐':'intermittent','위험':'danger','휴면':'dormant'}[s]||''; }
         function formatDate(d) { if(!d)return'-'; const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
 
+        /* ===== 출석부 ===== */
         const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
         function getSundaysInMonth(y,m) { const suns=[]; const d=new Date(y,m-1,1); while(d.getDay()!==0)d.setDate(d.getDate()+1); while(d.getMonth()===m-1){suns.push(new Date(d));d.setDate(d.getDate()+7);} return suns; }
         function renderMonthTabs() { document.getElementById('monthTabs').innerHTML = monthNames.map((n,i)=>{const suns=getSundaysInMonth(currentYear,i+1);return `<button class="month-tab ${i+1===currentMonth?'active':''}" onclick="setMonth(${i+1})">${n}<span class="week-count">${suns.length}주</span></button>`;}).join(''); }
@@ -527,15 +554,24 @@
         }
 
         function updateAttendanceSummary(ds,tp,tt) { ['grade1','grade2','grade3','grade4','grade5','grade6'].forEach(d=>{const st=ds[d];const pct=st.t>0?Math.round(st.p/st.t*100):0;document.getElementById(`att-${d}`).textContent=`${st.p}/${st.t}`;document.getElementById(`att-${d}-pct`).textContent=`${pct}%`;}); const tpct=tt>0?Math.round(tp/tt*100):0; document.getElementById('att-total').textContent=`${tp}/${tt}`; document.getElementById('att-total-pct').textContent=`${tpct}%`; }
-        function toggleAttendance(k) { const c=attendance[k]||'absent'; attendance[k]=c==='absent'?'present':c==='present'?'late':'absent'; localStorage.setItem('ssAttendance3',JSON.stringify(attendance)); renderAttendanceTable(); }
+
+        async function toggleAttendance(k) {
+            const c = attendance[k] || 'absent';
+            attendance[k] = c === 'absent' ? 'present' : c === 'present' ? 'late' : 'absent';
+            renderAttendanceTable();
+            await apiSaveAttendance(k, attendance[k]);
+        }
+
         function changeYear(d) { currentYear+=d; document.getElementById('currentYear').textContent=currentYear; currentWeek=1; renderMonthTabs(); renderWeekPills(); renderAttendanceTable(); }
         function setMonth(m) { currentMonth=m; currentWeek=1; document.querySelectorAll('.month-tab').forEach((t,i)=>t.classList.toggle('active',i+1===m)); renderWeekPills(); renderAttendanceTable(); }
         function setWeek(w) { currentWeek=w; document.querySelectorAll('.week-pill').forEach((p,i)=>p.classList.toggle('active',i+1===w)); renderAttendanceTable(); }
 
+        /* ===== 탭/필터 ===== */
         function setDept(d,btn) { currentDept=d; document.querySelectorAll('.dept-tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); document.querySelector('.dept-tabs').dataset.active=d; renderTable(); updateStats(); }
         function setFilter(f,btn) { currentFilter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderTable(); }
         function filterStudents() { renderTable(); }
 
+        /* ===== 모달 ===== */
         function openModal(mode,id=null) {
             const modal=document.getElementById('studentModal'),form=document.getElementById('studentForm'); form.reset(); document.querySelectorAll('input[name="reason"]').forEach(cb=>cb.checked=false);
             currentProfileImage=null;currentConsentImage=null; document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>'; document.getElementById('profileUploadArea').classList.remove('has-image'); document.getElementById('consentPreview').style.display='none'; document.getElementById('fileUploadArea').classList.remove('has-file');
@@ -545,6 +581,7 @@
         }
         function closeModal() { document.getElementById('studentModal').classList.remove('active'); editingId=null; try { window.parent.postMessage({ type: 'pbcs_modal_closed' }, '*'); } catch(_) {} }
 
+        /* ===== 이미지 업로드/압축 ===== */
         async function handleProfileUpload(e) { const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024){showToast('5MB초과','error');return;}if(!f.type.startsWith('image/')){showToast('이미지만','error');return;} try{const dataUrl=await compressImageToMax(f,100*1024);currentProfileImage=dataUrl;document.getElementById('profileUploadArea').innerHTML=`<img src="${currentProfileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}catch(err){showToast('이미지 압축 실패','error');}}
         function removeProfileImage() { currentProfileImage=null;document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>';document.getElementById('profileUploadArea').classList.remove('has-image');document.getElementById('profileFile').value=''; }
         async function handleConsentUpload(e) { const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024){showToast('5MB초과','error');return;}if(!f.type.startsWith('image/')){showToast('이미지만','error');return;} try{const dataUrl=await compressImageToMax(f,100*1024);currentConsentImage=dataUrl;document.getElementById('consentPreviewImg').src=currentConsentImage;document.getElementById('consentPreview').style.display='inline-block';document.getElementById('fileUploadArea').classList.add('has-file');document.getElementById('consentChecked').checked=true;}catch(err){showToast('이미지 압축 실패','error');}}
@@ -554,13 +591,47 @@
         function viewConsent(id) { const s=students.find(st=>st.id===id);if(s&&s.consentImage){const w=window.open('','_blank');w.document.write(`<html><head><title>${s.name} 동의서</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1f2937;}img{max-width:95vw;max-height:95vh;border-radius:8px;}</style></head><body><img src="${s.consentImage}"></body></html>`);} }
         function showPrayer(id) { const s=students.find(st=>st.id===id);if(s&&s.prayer){alert(`🙏 ${s.name} 기도제목\n\n${s.prayer}`);} }
 
-        function saveStudent() { const name=document.getElementById('name').value.trim(),grade=document.getElementById('grade').value;if(!name||!grade){showToast('이름/학년 필수','error');return;} const reasons=[];document.querySelectorAll('input[name="reason"]:checked').forEach(cb=>reasons.push(cb.value)); const data={name,grade,parentContact:document.getElementById('parentContact').value,studentContact:document.getElementById('studentContact').value,firstVisit:document.getElementById('firstVisit').value,status:document.getElementById('status').value,owner:document.getElementById('owner').value,prayer:document.getElementById('prayer').value,lastAttend:document.getElementById('lastAttend').value,absenceWeeks:parseInt(document.getElementById('absenceWeeks').value)||0,lastContact:document.getElementById('lastContact').value,contactMethod:document.getElementById('contactMethod').value,reasons,memo:document.getElementById('memo').value,consentChecked:document.getElementById('consentChecked').checked,consentImage:currentConsentImage,profileImage:currentProfileImage,track:[document.getElementById('track1').checked,document.getElementById('track2').checked,document.getElementById('track3').checked,document.getElementById('track4').checked]};if(editingId){const idx=students.findIndex(s=>s.id===editingId);if(idx!==-1)students[idx]={...students[idx],...data};showToast('수정완료','success');}else{data.id=Date.now();students.push(data);showToast('등록완료','success');}saveToStorage();renderAll();closeModal(); }
-        function deleteStudent(id) { if(confirm('삭제?')){students=students.filter(s=>s.id!==id);saveToStorage();renderAll();showToast('삭제됨','success');} }
-        function toggleTrack(id,i) { const s=students.find(st=>st.id===id);if(s){s.track[i]=!s.track[i];saveToStorage();renderTable();} }
-        function markContact(id) { const s=students.find(st=>st.id===id);if(s){s.lastContact=new Date().toISOString().split('T')[0];saveToStorage();renderTable();showToast(`${s.name} 연락기록`,'success');} }
-        function saveToStorage() { localStorage.setItem('ssStudents3',JSON.stringify(students)); }
+        /* ===== 학생 저장/삭제 (Supabase 연동) ===== */
+        async function saveStudent() {
+            const name=document.getElementById('name').value.trim(), grade=document.getElementById('grade').value;
+            if(!name||!grade){showToast('이름/학년 필수','error');return;}
+            const reasons=[];document.querySelectorAll('input[name="reason"]:checked').forEach(cb=>reasons.push(cb.value));
+            const data={name,grade,parentContact:document.getElementById('parentContact').value,studentContact:document.getElementById('studentContact').value,firstVisit:document.getElementById('firstVisit').value,status:document.getElementById('status').value,owner:document.getElementById('owner').value,prayer:document.getElementById('prayer').value,lastAttend:document.getElementById('lastAttend').value,absenceWeeks:parseInt(document.getElementById('absenceWeeks').value)||0,lastContact:document.getElementById('lastContact').value,contactMethod:document.getElementById('contactMethod').value,reasons,memo:document.getElementById('memo').value,consentChecked:document.getElementById('consentChecked').checked,consentImage:currentConsentImage,profileImage:currentProfileImage,track:[document.getElementById('track1').checked,document.getElementById('track2').checked,document.getElementById('track3').checked,document.getElementById('track4').checked]};
+            if(editingId){
+                const idx=students.findIndex(s=>s.id===editingId);
+                if(idx!==-1) students[idx]={...students[idx],...data};
+                renderAll(); closeModal();
+                await apiSaveStudent({...data, id: editingId});
+                showToast('수정완료','success');
+            } else {
+                data.id=Date.now();
+                students.push(data);
+                renderAll(); closeModal();
+                await apiCreateStudent(data);
+                showToast('등록완료','success');
+            }
+        }
 
-        function exportToExcel() { const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','동의','기도제목','메모'];const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};let csv='\uFEFF'+h.join(',')+'\n';students.forEach(s=>{const r=[s.name,s.grade,dn[getDept(s.grade)],s.parentContact||'',s.studentContact||'',s.firstVisit||'',s.status,s.lastAttend||'',s.absenceWeeks,s.owner||'',s.lastContact||'',s.consentImage?'완료':s.consentChecked?'대기':'미동의',(s.prayer||'').replace(/,/g,' '),(s.memo||'').replace(/,/g,' ')];csv+=r.map(c=>`"${c}"`).join(',')+'\n';});const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`주일학교_${currentYear}.csv`;link.click();showToast('다운로드','success'); }
+        async function deleteStudent(id) {
+            if(!confirm('삭제?')) return;
+            students=students.filter(s=>s.id!==id);
+            renderAll();
+            await apiDeleteStudent(id);
+            showToast('삭제됨','success');
+        }
+
+        async function toggleTrack(id,i) {
+            const s=students.find(st=>st.id===id);
+            if(s){ s.track[i]=!s.track[i]; renderTable(); await apiSaveStudent(s); }
+        }
+
+        async function markContact(id) {
+            const s=students.find(st=>st.id===id);
+            if(s){ s.lastContact=new Date().toISOString().split('T')[0]; renderTable(); await apiSaveStudent(s); showToast(`${s.name} 연락기록`,'success'); }
+        }
+
+        /* ===== 엑셀 / 토스트 ===== */
+        function exportToExcel() { const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','동의','기도제목','메모'];const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};let csv='\uFEFF'+h.join(',')+'\n';students.forEach(s=>{const r=[s.name,s.grade,dn[getDept(s.grade)],s.parentContact||'',s.studentContact||'',s.firstVisit||'',s.status,s.lastAttend||'',s.absenceWeeks,s.owner||'',s.lastContact||'',s.consentImage?'완료':s.consentChecked?'대기':'미동의',(s.prayer||'').replace(/,/g,' '),(s.memo||'').replace(/,/g,' ')];csv+=r.map(c=>`"${c}"`).join(',')+'\n';});const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const link=document.createElement('a');link.href=window.URL.createObjectURL(blob);link.download=`주일학교_${currentYear}.csv`;link.click();showToast('다운로드','success'); }
         function showToast(m,t='') { const toast=document.getElementById('toast');toast.textContent=m;toast.className='toast '+t+' show';setTimeout(()=>toast.classList.remove('show'),2500); }
         window.addEventListener('message', function(e){ if (e.data && e.data.type === 'pbcs_close_modal') closeModal(); });
     </script>
