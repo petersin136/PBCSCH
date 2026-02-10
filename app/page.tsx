@@ -384,7 +384,7 @@ export default function Home() {
       </section>
 
       <section
-        className="relative z-10 flex min-h-[50vh] flex-col items-center justify-center text-center px-4 pt-20 pb-20 md:min-h-screen md:px-8 md:pt-[100px] md:pb-[100px] bg-cover bg-center bg-fixed"
+        className="section-after-hero relative z-10 flex min-h-[50vh] flex-col items-center justify-center text-center px-4 pt-0 pb-20 md:min-h-screen md:px-8 md:pt-[100px] md:pb-[100px] bg-cover bg-center bg-fixed"
         style={{
           backgroundImage: "linear-gradient(rgba(255,255,255,0.84), rgba(255,255,255,0.84)), url('https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/images/KakaoTalk_Photo_2026-01-04-00-39-12%20003.jpg')",
           backgroundSize: "cover",
@@ -934,22 +934,29 @@ export default function Home() {
 
         .hero-mobile {
           display: none;
+          width: 100%;
+          margin: 0;
+          padding: 0;
           background: #000;
-          padding: 90px 16px 24px;
+          box-sizing: border-box;
         }
 
         .hero-mobile-stack {
+          width: 100%;
           display: flex;
-          flex-direction: column;
-          gap: 18px;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          background: #000;
         }
 
         .hero-mobile-video {
           width: 100%;
-          min-height: 50vh;
-          object-fit: cover;
+          height: auto;
+          display: block;
+          vertical-align: top;
+          object-fit: contain;
           object-position: center center;
-          border-radius: 12px;
           background: #000;
         }
 
@@ -1399,8 +1406,21 @@ export default function Home() {
             padding: 6px 2px;
           }
 
+          .header {
+            min-height: 48px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            box-sizing: border-box;
+          }
+
           .hero-mobile {
             display: block;
+            padding-top: 64px;
+          }
+
+          .section-after-hero {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
           }
 
           .hero {
