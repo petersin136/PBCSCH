@@ -116,6 +116,18 @@
         .action-btn:hover { background: var(--primary); color: white; }
         .action-btn.delete:hover { background: var(--danger); }
 
+        .api-error-banner {
+            display: none;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .api-error-banner.show { display: block; }
+
         /* 출석부 */
         .attendance-section { background: white; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
         .attendance-header { padding: 0.75rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
@@ -244,6 +256,9 @@
     </style>
 </head>
 <body>
+    <div id="apiErrorBanner" class="api-error-banner" role="alert">
+        ⚠️ DB 연결 실패 — 저장·불러오기가 되지 않습니다. 관리자에게 Supabase 설정(.env에 NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY) 요청하세요.
+    </div>
     <header class="header">
         <div class="header-content">
             <div class="logo"><div class="logo-icon">✝</div><span class="logo-text">주일학교 학생관리</span></div>
@@ -417,6 +432,9 @@
     <div class="toast" id="toast"></div>
 
     <script>
+        /* ===== API 베이스 (iframe/모바일에서도 동일 도메인 기준) ===== */
+        var API_BASE = (function(){ try { return window.location.origin; } catch(e){ return ''; } })();
+
         /* ===== 상태 변수 ===== */
         let students = [];
         let attendance = {};
@@ -427,46 +445,64 @@
 
         const GRADE_OWNERS = { '1학년':'박영미 선생님', '2학년':'박영미 선생님', '3학년':'박수나 선생님', '4학년':'이주희 선생님', '5학년':'심미래 선생님', '6학년':'김은경 선생님' };
 
+        function showApiErrorBanner(show) {
+            var el = document.getElementById('apiErrorBanner');
+            if (el) el.classList.toggle('show', !!show);
+        }
+
         /* ===== DB 로드 (Supabase API) ===== */
         async function loadFromDB() {
+            showApiErrorBanner(false);
             try {
+                var sUrl = API_BASE + '/api/students';
+                var aUrl = API_BASE + '/api/attendance';
                 const [sRes, aRes] = await Promise.all([
-                    fetch('/api/students'),
-                    fetch('/api/attendance')
+                    fetch(sUrl, { cache: 'no-store' }),
+                    fetch(aUrl, { cache: 'no-store' })
                 ]);
-                if (sRes.ok) { students = await sRes.json(); dbReady = true; }
-                else { throw new Error('students fetch failed'); }
-                if (aRes.ok) { const data = await aRes.json(); attendance = data.records || {}; }
+                if (sRes.ok) {
+                    students = await sRes.json();
+                    if (!Array.isArray(students)) students = [];
+                    dbReady = true;
+                } else {
+                    var msg = sRes.status === 500 ? '서버 설정 오류(Supabase 미설정)' : 'students ' + sRes.status;
+                    throw new Error(msg);
+                }
+                if (aRes.ok) {
+                    var data = await aRes.json();
+                    attendance = (data && data.records) ? data.records : {};
+                }
             } catch(e) {
-                console.warn('DB 로드 실패, 빈 상태로 시작:', e);
+                console.warn('DB 로드 실패:', e);
                 students = [];
                 attendance = {};
                 dbReady = false;
+                showApiErrorBanner(true);
             }
         }
 
         /* ===== DB 저장 헬퍼 ===== */
         async function apiSaveStudent(student) {
             try {
-                const res = await fetch('/api/students', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(student) });
+                var res = await fetch(API_BASE + '/api/students', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(student) });
                 if (!res.ok) showToast('서버 저장 실패', 'error');
             } catch(e) { showToast('서버 연결 실패', 'error'); }
         }
         async function apiCreateStudent(student) {
             try {
-                const res = await fetch('/api/students', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(student) });
+                var res = await fetch(API_BASE + '/api/students', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(student) });
                 if (!res.ok) showToast('서버 등록 실패', 'error');
             } catch(e) { showToast('서버 연결 실패', 'error'); }
         }
         async function apiDeleteStudent(id) {
             try {
-                const res = await fetch('/api/students?id=' + id, { method: 'DELETE' });
+                var res = await fetch(API_BASE + '/api/students?id=' + encodeURIComponent(id), { method: 'DELETE' });
                 if (!res.ok) showToast('서버 삭제 실패', 'error');
             } catch(e) { showToast('서버 연결 실패', 'error'); }
         }
         async function apiSaveAttendance(key, status) {
             try {
-                const res = await fetch('/api/attendance', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key, status }) });
+                var res = await fetch(API_BASE + '/api/attendance', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: key, status: status }) });
                 if (!res.ok) showToast('출석 저장 실패', 'error');
             } catch(e) { showToast('서버 연결 실패', 'error'); }
         }

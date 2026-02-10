@@ -86,7 +86,7 @@ export default function ManagePage() {
         <iframe
           ref={iframeRef}
           title="학생관리"
-          src="/manage/student-management-v3.html"
+          src="/manage/student-management-v3.html?v=4"
           style={{ width: "100%", height: "calc(100vh - 44px)", border: "none" }}
         />
       </div>

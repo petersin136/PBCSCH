@@ -183,10 +183,8 @@ export default function Home() {
   const smoothScrollYRef = useRef(0);
   const targetScrollYRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [videoEnded, setVideoEnded] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [parentNoticeOpen, setParentNoticeOpen] = useState(false);
-  const endVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const imagesByIndex = useMemo(() => {
     return sections.map((_, idx) => images[idx % images.length]);
@@ -362,7 +360,7 @@ export default function Home() {
       <section className="hero-mobile" aria-hidden="true">
         <div className="hero-mobile-stack">
           <video
-            className="hero-mobile-video top"
+            className="hero-mobile-video"
             autoPlay
             muted
             playsInline
@@ -370,56 +368,19 @@ export default function Home() {
           >
             <source src="https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/videos/hea.mov" />
           </video>
-          <video
-            className="hero-mobile-video bottom"
-            autoPlay
-            muted
-            playsInline
-            loop
-            preload="metadata"
-          >
-            <source
-              src="https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/videos/he.mp4"
-              type="video/mp4"
-            />
-          </video>
         </div>
       </section>
 
-      <section id="hero" className={`hero ${videoEnded ? "hero-ended" : ""}`}>
+      <section id="hero" className="hero">
         <video
           className="hero-video"
           autoPlay
           muted
           playsInline
-          preload="metadata"
-          onEnded={() => {
-            setVideoEnded(true);
-            if (endVideoRef.current) {
-              endVideoRef.current.currentTime = 0;
-              endVideoRef.current.play().catch(() => {});
-            }
-          }}
+          preload="auto"
         >
-          <source
-            src="https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/videos/he.mp4"
-            type="video/mp4"
-          />
+          <source src="https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/videos/hea.mov" />
         </video>
-        <div className="hero-ended-content" aria-hidden={!videoEnded}>
-          <video
-            className="hero-ended-full"
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            ref={endVideoRef}
-          >
-            <source
-              src="https://macmcfqzyejmgeabxupb.supabase.co/storage/v1/object/public/videos/hea.mov"
-            />
-          </video>
-        </div>
       </section>
 
       <section
@@ -944,6 +905,8 @@ export default function Home() {
         }
 
         .hero {
+          width: 100%;
+          min-width: 100%;
           height: 100vh;
           display: flex;
           align-items: center;
@@ -962,50 +925,11 @@ export default function Home() {
           top: 52px;
           width: 100%;
           height: calc(100% - 52px);
-          object-fit: contain;
+          object-fit: cover;
+          object-position: center center;
           filter: saturate(0.9);
           z-index: 0;
           background: #000;
-          transition: opacity 0.35s ease;
-        }
-
-        .hero-ended {
-          background: #f6e6a6;
-        }
-
-        .hero-ended .hero-video {
-          opacity: 0;
-          pointer-events: none;
-        }
-
-        .hero-ended-content {
-          position: absolute;
-          inset: 0;
-          display: block;
-          opacity: 0;
-          visibility: hidden;
-          pointer-events: none;
-          transition: opacity 0.3s ease, visibility 0.3s ease;
-          z-index: 1;
-        }
-
-        .hero-ended .hero-ended-content {
-          opacity: 1;
-          visibility: visible;
-          pointer-events: auto;
-        }
-
-        .hero-ended-full {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-        }
-
-        .hero-ended .hero-ended-full {
-          opacity: 1;
         }
 
         .hero-mobile {
@@ -1022,6 +946,9 @@ export default function Home() {
 
         .hero-mobile-video {
           width: 100%;
+          min-height: 50vh;
+          object-fit: cover;
+          object-position: center center;
           border-radius: 12px;
           background: #000;
         }
