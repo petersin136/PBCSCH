@@ -1399,16 +1399,19 @@ export default function Home() {
             padding: 6px 2px;
           }
 
-          .hero {
-            justify-content: flex-start;
-          }
-
           .hero-mobile {
             display: block;
           }
 
           .hero {
-            display: none;
+            display: none !important;
+            visibility: hidden;
+            height: 0;
+            min-height: 0;
+            overflow: hidden;
+            position: absolute;
+            left: -9999px;
+            pointer-events: none;
           }
         }
 
