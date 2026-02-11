@@ -116,6 +116,39 @@
         .action-btn:hover { background: var(--primary); color: white; }
         .action-btn.delete:hover { background: var(--danger); }
 
+        /* 주간 노트 모달 */
+        .notes-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1100; align-items:center; justify-content:center; padding:0.5rem; }
+        .notes-overlay.active { display:flex; }
+        .notes-modal { background:white; border-radius:16px; width:100%; max-width:520px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+        .notes-modal-header { display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; border-bottom:1px solid var(--gray-200); background:var(--gray-50); }
+        .notes-modal-header h3 { font-size:1rem; font-weight:700; color:var(--gray-800); display:flex; align-items:center; gap:0.4rem; }
+        .notes-modal-header h3 small { font-size:0.75rem; font-weight:400; color:var(--gray-500); }
+        .notes-modal-close { border:none; background:none; font-size:1.4rem; cursor:pointer; color:var(--gray-500); padding:4px 8px; border-radius:8px; }
+        .notes-modal-close:hover { background:var(--gray-200); }
+        .notes-modal-body { flex:1; overflow-y:auto; padding:0.75rem 1rem; }
+        .notes-week-nav { display:flex; gap:0.3rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+        .notes-week-btn { padding:0.3rem 0.7rem; border-radius:16px; font-size:0.7rem; font-weight:500; cursor:pointer; border:1px solid var(--gray-300); background:white; color:var(--gray-600); font-family:inherit; }
+        .notes-week-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+        .notes-week-btn.has-data { border-color:var(--success); color:var(--success); }
+        .notes-week-btn.has-data.active { background:var(--success); color:white; }
+        .notes-field { margin-bottom:0.75rem; }
+        .notes-field label { display:block; font-size:0.75rem; font-weight:600; color:var(--gray-600); margin-bottom:0.3rem; }
+        .notes-field textarea { width:100%; min-height:80px; padding:0.5rem; border:1px solid var(--gray-300); border-radius:8px; font-size:0.8rem; font-family:inherit; resize:vertical; }
+        .notes-field textarea:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 2px rgba(37,99,235,0.15); }
+        .notes-save-btn { width:100%; padding:0.6rem; background:var(--primary); color:white; border:none; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; font-family:inherit; }
+        .notes-save-btn:hover { background:var(--primary-dark); }
+        .notes-history { margin-top:0.75rem; border-top:1px solid var(--gray-200); padding-top:0.75rem; }
+        .notes-history-title { font-size:0.75rem; font-weight:600; color:var(--gray-500); margin-bottom:0.5rem; }
+        .notes-history-item { background:var(--gray-50); border-radius:8px; padding:0.5rem 0.65rem; margin-bottom:0.4rem; font-size:0.75rem; }
+        .notes-history-item .nhi-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem; }
+        .notes-history-item .nhi-date { font-weight:600; color:var(--primary); }
+        .notes-history-item .nhi-note { color:var(--gray-700); white-space:pre-wrap; }
+        .notes-history-item .nhi-prayer { color:var(--purple); margin-top:0.2rem; }
+        .notes-contact-row { display:flex; gap:0.5rem; margin-bottom:0.75rem; padding:0.5rem 0.65rem; background:var(--gray-50); border-radius:8px; align-items:center; }
+        .notes-contact-row .nc-label { font-size:0.7rem; color:var(--gray-500); }
+        .notes-contact-row .nc-phone { font-size:0.85rem; font-weight:600; color:var(--primary); }
+        .notes-contact-row a { padding:0.3rem 0.7rem; border-radius:8px; background:var(--success); color:white; font-size:0.7rem; font-weight:600; text-decoration:none; margin-left:auto; }
+
         .api-error-banner {
             display: none;
             background: linear-gradient(135deg, #dc2626, #b91c1c);
@@ -431,6 +464,36 @@
 
     <div class="toast" id="toast"></div>
 
+    <!-- 주간 노트 모달 -->
+    <div class="notes-overlay" id="notesOverlay" onclick="closeNotesModal()">
+        <div class="notes-modal" onclick="event.stopPropagation()">
+            <div class="notes-modal-header">
+                <h3 id="notesTitle">📋 <span id="notesStudentName">학생</span> <small>주간 기록</small></h3>
+                <button class="notes-modal-close" onclick="closeNotesModal()">&times;</button>
+            </div>
+            <div class="notes-modal-body">
+                <div class="notes-contact-row" id="notesContactRow" style="display:none;">
+                    <div>
+                        <div class="nc-label">연락처</div>
+                        <div class="nc-phone" id="notesPhone"></div>
+                    </div>
+                    <a id="notesCallLink" href="#">📞 전화걸기</a>
+                </div>
+                <div class="notes-week-nav" id="notesWeekNav"></div>
+                <div class="notes-field">
+                    <label>📝 이번 주 특이사항 / 메모</label>
+                    <textarea id="notesNoteField" placeholder="이 아이의 이번 주 상태, 특이사항을 적어주세요..."></textarea>
+                </div>
+                <div class="notes-field">
+                    <label>🙏 이번 주 기도제목</label>
+                    <textarea id="notesPrayerField" placeholder="이 아이를 위한 기도 내용..."></textarea>
+                </div>
+                <button class="notes-save-btn" onclick="saveNote()">💾 저장</button>
+                <div class="notes-history" id="notesHistory"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         /* ===== API 베이스 (iframe/모바일에서도 동일 도메인 기준) ===== */
         var API_BASE = (function(){ try { return window.location.origin; } catch(e){ return ''; } })();
@@ -537,7 +600,7 @@
             if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:1.5rem;color:var(--gray-400);">학생 없음</td></tr>'; }
             else {
                 tbody.innerHTML = filtered.map(s => `<tr>
-                    <td><div class="student-cell">${s.profileImage ? `<img src="${s.profileImage}" class="profile-img">` : '<div class="profile-placeholder">👤</div>'}<div class="student-info"><span class="student-name">${s.name}</span>${s.studentContact ? `<span class="student-contact"><a href="tel:${s.studentContact}">${s.studentContact}</a></span>` : ''}</div></div></td>
+                    <td><div class="student-cell">${s.profileImage ? `<img src="${s.profileImage}" class="profile-img">` : '<div class="profile-placeholder">👤</div>'}<div class="student-info"><span class="student-name">${s.name}</span>${s.studentContact ? `<span class="student-contact"><a href="#" onclick="event.preventDefault();openNotesModal(${s.id})" style="cursor:pointer">${s.studentContact}</a></span>` : ''}</div></div></td>
                     <td>${s.grade}</td>
                     <td><span class="status-badge ${getStatusClass(s.status)}">${s.status}</span></td>
                     <td class="hide-mobile">${formatDate(s.lastAttend)}</td>
@@ -546,7 +609,7 @@
                     <td><span class="consent-badge ${s.consentImage?'complete':s.consentChecked?'pending':'none'}" onclick="${s.consentImage?`viewConsent(${s.id})`:''}" style="${s.consentImage?'cursor:pointer':''}">${s.consentImage?'✓완료':s.consentChecked?'대기':'미동의'}</span></td>
                     <td class="hide-mobile">${s.prayer?`<span class="prayer-badge" onclick="showPrayer(${s.id})" title="${s.prayer}">🙏${s.prayer.substring(0,5)}${s.prayer.length>5?'..':''}</span>`:'-'}</td>
                     <td><div class="track-progress">${s.track.map((d,i)=>`<div class="track-check ${d?'done':'pending'}" onclick="toggleTrack(${s.id},${i})">${d?'✓':i}</div>`).join('')}</div></td>
-                    <td style="white-space:nowrap"><button class="action-btn" onclick="openModal('edit',${s.id})">✏️</button><button class="action-btn" onclick="markContact(${s.id})">📞</button><button class="action-btn delete" onclick="deleteStudent(${s.id})">🗑️</button></td>
+                    <td style="white-space:nowrap"><button class="action-btn" onclick="openModal('edit',${s.id})">✏️</button><button class="action-btn" onclick="callStudent(${s.id})">📞</button><button class="action-btn delete" onclick="deleteStudent(${s.id})">🗑️</button></td>
                 </tr>`).join('');
             }
             document.getElementById('studentCount').textContent = `${filtered.length}명`;
@@ -661,9 +724,149 @@
             if(s){ s.track[i]=!s.track[i]; renderTable(); await apiSaveStudent(s); }
         }
 
-        async function markContact(id) {
-            const s=students.find(st=>st.id===id);
-            if(s){ s.lastContact=new Date().toISOString().split('T')[0]; renderTable(); await apiSaveStudent(s); showToast(`${s.name} 연락기록`,'success'); }
+        /* ===== 전화 걸기 ===== */
+        function callStudent(id) {
+            const s = students.find(st => st.id === id);
+            if (!s) return;
+            var phone = s.studentContact || s.parentContact;
+            if (phone) {
+                s.lastContact = new Date().toISOString().split('T')[0];
+                renderTable();
+                apiSaveStudent(s);
+                window.location.href = 'tel:' + phone;
+            } else {
+                showToast('연락처가 없습니다', 'error');
+            }
+        }
+
+        /* ===== 주간 노트 모달 ===== */
+        var notesStudentId = null;
+        var notesData = [];
+        var notesSelectedWeek = 1;
+        var notesYear = new Date().getFullYear();
+        var notesMonth = new Date().getMonth() + 1;
+
+        async function openNotesModal(id) {
+            var s = students.find(st => st.id === id);
+            if (!s) return;
+            notesStudentId = id;
+            notesYear = currentYear;
+            notesMonth = currentMonth;
+            var suns = getSundaysInMonth(notesYear, notesMonth);
+            notesSelectedWeek = Math.min(currentWeek, suns.length);
+            document.getElementById('notesStudentName').textContent = s.name + ' (' + s.grade + ')';
+
+            var cr = document.getElementById('notesContactRow');
+            var phone = s.studentContact || s.parentContact;
+            if (phone) {
+                cr.style.display = 'flex';
+                document.getElementById('notesPhone').textContent = phone;
+                document.getElementById('notesCallLink').href = 'tel:' + phone;
+            } else {
+                cr.style.display = 'none';
+            }
+
+            await loadNotes(id);
+            renderNotesWeekNav();
+            fillNoteFields();
+            renderNotesHistory();
+            document.getElementById('notesOverlay').classList.add('active');
+            try { window.parent.postMessage({ type: 'pbcs_modal_opened' }, '*'); } catch(_) {}
+        }
+
+        function closeNotesModal() {
+            document.getElementById('notesOverlay').classList.remove('active');
+            notesStudentId = null;
+            notesData = [];
+            try { window.parent.postMessage({ type: 'pbcs_modal_closed' }, '*'); } catch(_) {}
+        }
+
+        async function loadNotes(sid) {
+            try {
+                var res = await fetch(API_BASE + '/api/notes?student_id=' + encodeURIComponent(sid), { cache: 'no-store' });
+                if (res.ok) {
+                    notesData = await res.json();
+                    if (!Array.isArray(notesData)) notesData = [];
+                } else {
+                    notesData = [];
+                }
+            } catch(e) {
+                notesData = [];
+            }
+        }
+
+        function renderNotesWeekNav() {
+            var suns = getSundaysInMonth(notesYear, notesMonth);
+            var nav = document.getElementById('notesWeekNav');
+            nav.innerHTML = '<span style="font-size:0.7rem;color:var(--gray-500);margin-right:0.3rem;">' + notesYear + '년 ' + notesMonth + '월</span>' +
+                suns.map(function(sun, i) {
+                    var w = i + 1;
+                    var hasData = notesData.some(function(n){ return n.year === notesYear && n.month === notesMonth && n.week === w && (n.note || n.prayer); });
+                    var cls = 'notes-week-btn';
+                    if (hasData) cls += ' has-data';
+                    if (w === notesSelectedWeek) cls += ' active';
+                    return '<button class="' + cls + '" onclick="selectNotesWeek(' + w + ')">' + w + '주(' + (sun.getMonth()+1) + '/' + sun.getDate() + ')</button>';
+                }).join('');
+        }
+
+        function selectNotesWeek(w) {
+            notesSelectedWeek = w;
+            renderNotesWeekNav();
+            fillNoteFields();
+        }
+
+        function fillNoteFields() {
+            var existing = notesData.find(function(n){ return n.year === notesYear && n.month === notesMonth && n.week === notesSelectedWeek; });
+            document.getElementById('notesNoteField').value = existing ? (existing.note || '') : '';
+            document.getElementById('notesPrayerField').value = existing ? (existing.prayer || '') : '';
+        }
+
+        function renderNotesHistory() {
+            var hist = document.getElementById('notesHistory');
+            var sorted = notesData.filter(function(n){ return n.note || n.prayer; })
+                .sort(function(a,b){ return (b.year*10000+b.month*100+b.week) - (a.year*10000+a.month*100+a.week); })
+                .slice(0, 10);
+            if (sorted.length === 0) {
+                hist.innerHTML = '<div class="notes-history-title">📜 기록 없음</div>';
+                return;
+            }
+            hist.innerHTML = '<div class="notes-history-title">📜 최근 기록</div>' +
+                sorted.map(function(n) {
+                    return '<div class="notes-history-item"><div class="nhi-header"><span class="nhi-date">' + n.year + '년 ' + n.month + '월 ' + n.week + '주</span></div>' +
+                        (n.note ? '<div class="nhi-note">📝 ' + n.note + '</div>' : '') +
+                        (n.prayer ? '<div class="nhi-prayer">🙏 ' + n.prayer + '</div>' : '') +
+                        '</div>';
+                }).join('');
+        }
+
+        async function saveNote() {
+            if (!notesStudentId) return;
+            var noteVal = document.getElementById('notesNoteField').value.trim();
+            var prayerVal = document.getElementById('notesPrayerField').value.trim();
+            try {
+                var res = await fetch(API_BASE + '/api/notes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        student_id: notesStudentId,
+                        year: notesYear,
+                        month: notesMonth,
+                        week: notesSelectedWeek,
+                        note: noteVal,
+                        prayer: prayerVal
+                    })
+                });
+                if (res.ok) {
+                    showToast('저장 완료', 'success');
+                    await loadNotes(notesStudentId);
+                    renderNotesWeekNav();
+                    renderNotesHistory();
+                } else {
+                    showToast('저장 실패', 'error');
+                }
+            } catch(e) {
+                showToast('서버 연결 실패', 'error');
+            }
         }
 
         /* ===== 엑셀 / 토스트 ===== */
