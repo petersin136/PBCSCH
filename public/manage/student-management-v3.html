@@ -106,12 +106,6 @@
 
         .prayer-badge { display: inline-flex; align-items: center; gap: 0.15rem; padding: 0.1rem 0.3rem; background: var(--purple-light); color: var(--purple); border-radius: 5px; font-size: 0.55rem; cursor: pointer; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* 트랙 */
-        .track-progress { display: flex; gap: 1px; }
-        .track-check { width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; cursor: pointer; font-weight: 600; }
-        .track-check.done { background: var(--success); color: white; }
-        .track-check.pending { background: var(--gray-200); color: var(--gray-400); }
-
         /* 액션 */
         .action-btn { padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.65rem; cursor: pointer; border: none; background: var(--gray-100); color: var(--gray-600); }
         .action-btn:hover { background: var(--primary); color: white; }
@@ -355,7 +349,7 @@
             <div class="table-header"><span class="table-title">📋 학생 목록</span><span id="studentCount">0명</span></div>
             <div class="table-wrapper">
                 <table>
-                    <thead><tr><th>학생</th><th>학년</th><th>상태</th><th class="hide-mobile">출석</th><th>결석</th><th class="hide-mobile">담당</th><th>동의</th><th class="hide-mobile">기도</th><th>트랙</th><th>액션</th></tr></thead>
+                    <thead><tr><th>학생</th><th>학년</th><th>상태</th><th class="hide-mobile">출석</th><th>결석</th><th class="hide-mobile">담당</th><th>동의</th><th class="hide-mobile">기도</th><th>액션</th></tr></thead>
                     <tbody id="studentTable"></tbody>
                 </table>
             </div>
@@ -434,13 +428,6 @@
                         <label class="checkbox-label"><input type="checkbox" name="reason" value="건강"> 건강</label>
                     </div></div>
                     <div class="form-group"><label class="form-label">메모</label><textarea class="form-textarea" id="memo" placeholder="특이사항..."></textarea></div>
-                    <div class="section-title">✅ 새친구 4주 트랙</div>
-                    <div class="form-group"><div class="checkbox-group">
-                        <label class="checkbox-label"><input type="checkbox" id="track1"> 0주:기록</label>
-                        <label class="checkbox-label"><input type="checkbox" id="track2"> 1주:메시지</label>
-                        <label class="checkbox-label"><input type="checkbox" id="track3"> 2주:버디</label>
-                        <label class="checkbox-label"><input type="checkbox" id="track4"> 4주:소그룹</label>
-                    </div></div>
                 </form>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">취소</button><button class="btn btn-primary" onclick="saveStudent()">저장</button></div>
@@ -637,7 +624,6 @@
                     <td class="hide-mobile" style="white-space:nowrap">${s.owner||'-'}</td>
                     <td><span class="consent-badge ${s.consentImage?'complete':s.consentChecked?'pending':'none'}" onclick="${s.consentImage?`viewConsent(${s.id})`:''}" style="${s.consentImage?'cursor:pointer':''}">${s.consentImage?'✓완료':s.consentChecked?'대기':'미동의'}</span></td>
                     <td class="hide-mobile">${s.prayer?`<span class="prayer-badge" onclick="showPrayer(${s.id})" title="${s.prayer}">🙏${s.prayer.substring(0,5)}${s.prayer.length>5?'..':''}</span>`:'-'}</td>
-                    <td><div class="track-progress">${s.track.map((d,i)=>`<div class="track-check ${d?'done':'pending'}" onclick="toggleTrack(${s.id},${i})">${d?'✓':i}</div>`).join('')}</div></td>
                     <td style="white-space:nowrap"><button class="action-btn" onclick="openModal('edit',${s.id})">✏️</button><button class="action-btn" onclick="callStudent(${s.id})">📞</button><button class="action-btn delete" onclick="deleteStudent(${s.id})">🗑️</button></td>
                 </tr>`).join('');
             }
@@ -713,7 +699,7 @@
         function openModal(mode,id=null) {
             const modal=document.getElementById('studentModal'),form=document.getElementById('studentForm'); form.reset(); document.querySelectorAll('input[name="reason"]').forEach(cb=>cb.checked=false);
             currentProfileImage=null;currentConsentImage=null; document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>'; document.getElementById('profileUploadArea').classList.remove('has-image'); document.getElementById('consentPreview').style.display='none'; document.getElementById('fileUploadArea').classList.remove('has-file');
-            if(mode==='edit'&&id){editingId=id;document.getElementById('modalTitle').textContent='학생 정보 수정';const s=students.find(st=>st.id===id);if(s){document.getElementById('name').value=s.name;document.getElementById('grade').value=s.grade;document.getElementById('parentContact').value=s.parentContact||'';document.getElementById('studentContact').value=s.studentContact||'';document.getElementById('firstVisit').value=s.firstVisit||'';document.getElementById('status').value=s.status;document.getElementById('owner').value=s.owner||'';document.getElementById('prayer').value=s.prayer||'';document.getElementById('lastAttend').value=s.lastAttend||'';document.getElementById('absenceWeeks').value=s.absenceWeeks;document.getElementById('lastContact').value=s.lastContact||'';document.getElementById('contactMethod').value=s.contactMethod||'';document.getElementById('memo').value=s.memo||'';document.getElementById('consentChecked').checked=s.consentChecked||false;if(s.profileImage){currentProfileImage=s.profileImage;document.getElementById('profileUploadArea').innerHTML=`<img src="${s.profileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}if(s.consentImage){currentConsentImage=s.consentImage;document.getElementById('consentPreviewImg').src=s.consentImage;document.getElementById('consentPreview').style.display='inline-block';document.getElementById('fileUploadArea').classList.add('has-file');}s.reasons?.forEach(r=>{const cb=document.querySelector(`input[name="reason"][value="${r}"]`);if(cb)cb.checked=true;});document.getElementById('track1').checked=s.track[0];document.getElementById('track2').checked=s.track[1];document.getElementById('track3').checked=s.track[2];document.getElementById('track4').checked=s.track[3];}}else{editingId=null;document.getElementById('modalTitle').textContent='학생 등록';document.getElementById('firstVisit').value=new Date().toISOString().split('T')[0];}
+            if(mode==='edit'&&id){editingId=id;document.getElementById('modalTitle').textContent='학생 정보 수정';const s=students.find(st=>st.id===id);if(s){document.getElementById('name').value=s.name;document.getElementById('grade').value=s.grade;document.getElementById('parentContact').value=s.parentContact||'';document.getElementById('studentContact').value=s.studentContact||'';document.getElementById('firstVisit').value=s.firstVisit||'';document.getElementById('status').value=s.status;document.getElementById('owner').value=s.owner||'';document.getElementById('prayer').value=s.prayer||'';document.getElementById('lastAttend').value=s.lastAttend||'';document.getElementById('absenceWeeks').value=s.absenceWeeks;document.getElementById('lastContact').value=s.lastContact||'';document.getElementById('contactMethod').value=s.contactMethod||'';document.getElementById('memo').value=s.memo||'';document.getElementById('consentChecked').checked=s.consentChecked||false;if(s.profileImage){currentProfileImage=s.profileImage;document.getElementById('profileUploadArea').innerHTML=`<img src="${s.profileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}if(s.consentImage){currentConsentImage=s.consentImage;document.getElementById('consentPreviewImg').src=s.consentImage;document.getElementById('consentPreview').style.display='inline-block';document.getElementById('fileUploadArea').classList.add('has-file');}s.reasons?.forEach(r=>{const cb=document.querySelector(`input[name="reason"][value="${r}"]`);if(cb)cb.checked=true;});}}else{editingId=null;document.getElementById('modalTitle').textContent='학생 등록';document.getElementById('firstVisit').value=new Date().toISOString().split('T')[0];}
             modal.classList.add('active');
             try { window.parent.postMessage({ type: 'pbcs_modal_opened' }, '*'); } catch(_) {}
         }
@@ -734,7 +720,7 @@
             const name=document.getElementById('name').value.trim(), grade=document.getElementById('grade').value;
             if(!name||!grade){showToast('이름/학년 필수','error');return;}
             const reasons=[];document.querySelectorAll('input[name="reason"]:checked').forEach(cb=>reasons.push(cb.value));
-            const data={name,grade,parentContact:document.getElementById('parentContact').value,studentContact:document.getElementById('studentContact').value,firstVisit:document.getElementById('firstVisit').value,status:document.getElementById('status').value,owner:document.getElementById('owner').value,prayer:document.getElementById('prayer').value,lastAttend:document.getElementById('lastAttend').value,absenceWeeks:parseInt(document.getElementById('absenceWeeks').value)||0,lastContact:document.getElementById('lastContact').value,contactMethod:document.getElementById('contactMethod').value,reasons,memo:document.getElementById('memo').value,consentChecked:document.getElementById('consentChecked').checked,consentImage:currentConsentImage,profileImage:currentProfileImage,track:[document.getElementById('track1').checked,document.getElementById('track2').checked,document.getElementById('track3').checked,document.getElementById('track4').checked]};
+            const data={name,grade,parentContact:document.getElementById('parentContact').value,studentContact:document.getElementById('studentContact').value,firstVisit:document.getElementById('firstVisit').value,status:document.getElementById('status').value,owner:document.getElementById('owner').value,prayer:document.getElementById('prayer').value,lastAttend:document.getElementById('lastAttend').value,absenceWeeks:parseInt(document.getElementById('absenceWeeks').value)||0,lastContact:document.getElementById('lastContact').value,contactMethod:document.getElementById('contactMethod').value,reasons,memo:document.getElementById('memo').value,consentChecked:document.getElementById('consentChecked').checked,consentImage:currentConsentImage,profileImage:currentProfileImage};
             if(editingId){
                 const idx=students.findIndex(s=>s.id===editingId);
                 if(idx!==-1) students[idx]={...students[idx],...data};
@@ -756,11 +742,6 @@
             renderAll();
             await apiDeleteStudent(id);
             showToast('삭제됨','success');
-        }
-
-        async function toggleTrack(id,i) {
-            const s=students.find(st=>st.id===id);
-            if(s){ s.track[i]=!s.track[i]; renderTable(); await apiSaveStudent(s); }
         }
 
         /* ===== 전화 걸기 ===== */
@@ -925,7 +906,32 @@
         }
 
         /* ===== 엑셀 / 토스트 ===== */
-        function exportToExcel() { const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','동의','기도제목','메모'];const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};let csv='\uFEFF'+h.join(',')+'\n';students.forEach(s=>{const r=[s.name,s.grade,dn[getDept(s.grade)],s.parentContact||'',s.studentContact||'',s.firstVisit||'',s.status,s.lastAttend||'',s.absenceWeeks,s.owner||'',s.lastContact||'',s.consentImage?'완료':s.consentChecked?'대기':'미동의',(s.prayer||'').replace(/,/g,' '),(s.memo||'').replace(/,/g,' ')];csv+=r.map(c=>`"${c}"`).join(',')+'\n';});const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const link=document.createElement('a');link.href=window.URL.createObjectURL(blob);link.download=`주일학교_${currentYear}.csv`;link.click();showToast('다운로드','success'); }
+        function exportToExcel() {
+            const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','동의','기도제목','메모'];
+            const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};
+            let csv='\uFEFF'+h.join(',')+'\n';
+            students.forEach(s=>{const r=[s.name,s.grade,dn[getDept(s.grade)],s.parentContact||'',s.studentContact||'',s.firstVisit||'',s.status,s.lastAttend||'',s.absenceWeeks,s.owner||'',s.lastContact||'',s.consentImage?'완료':s.consentChecked?'대기':'미동의',(s.prayer||'').replace(/,/g,' '),(s.memo||'').replace(/,/g,' ')];csv+=r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')+'\n';});
+            csv+='\n';
+            csv+='"【 합계 】",""\n';
+            csv+=`"전체 인원","${students.length}명"\n`;
+            const gradeCounts={}; ['1학년','2학년','3학년','4학년','5학년','6학년'].forEach(g=>{gradeCounts[g]=students.filter(s=>s.grade===g).length;});
+            csv+='"학년별",""\n';
+            ['1학년','2학년','3학년','4학년','5학년','6학년'].forEach(g=>{csv+=`"${g}","${gradeCounts[g]}명"\n`;});
+            const statusCounts={'새친구':0,'정착':0,'간헐':0,'위험':0,'휴면':0};
+            students.forEach(s=>{if(statusCounts[s.status]!==undefined)statusCounts[s.status]++;});
+            csv+='"상태별",""\n';
+            ['새친구','정착','간헐','위험','휴면'].forEach(st=>{csv+=`"${st}","${statusCounts[st]}명"\n`;});
+            const consentComplete=students.filter(s=>s.consentImage).length;
+            const consentPending=students.filter(s=>s.consentChecked&&!s.consentImage).length;
+            const consentNone=students.length-consentComplete-consentPending;
+            csv+='"동의서",""\n';
+            csv+=`"완료","${consentComplete}명"\n`;
+            csv+=`"대기","${consentPending}명"\n`;
+            csv+=`"미동의","${consentNone}명"\n`;
+            const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+            const link=document.createElement('a');link.href=window.URL.createObjectURL(blob);link.download=`주일학교_${currentYear}.csv`;link.click();
+            showToast('다운로드','success');
+        }
         function exportAttendanceCSV(y, m, w) {
             const suns = getSundaysInMonth(y, m);
             const sun = suns[w - 1];
@@ -935,14 +941,28 @@
             const h = ['이름','학년','담당','출석'];
             let csv = '\uFEFF' + h.join(',') + '\n';
             const allKeys = ['grade1','grade2','grade3','grade4','grade5','grade6'];
+            const gradeStats = {};
             allKeys.forEach(dept => {
-                students.filter(s => getDept(s.grade) === dept).sort((a,b) => getGradeNum(a.grade) - getGradeNum(b.grade)).forEach(s => {
+                const list = students.filter(s => getDept(s.grade) === dept).sort((a,b) => getGradeNum(a.grade) - getGradeNum(b.grade));
+                let present = 0;
+                list.forEach(s => {
                     const ak = wk + '-' + s.id;
                     const as = attendance[ak] || 'absent';
+                    if (as === 'present' || as === 'late') present++;
                     const status = as === 'present' ? '출석' : as === 'late' ? '지각' : '결석';
                     csv += `"${(s.name||'').replace(/"/g,'""')}","${s.grade||''}","${(s.owner||'').replace(/"/g,'""')}","${status}"\n`;
                 });
+                gradeStats[dept] = { present, total: list.length };
             });
+            csv += '\n';
+            csv += '"【 합계 】","","",""\n';
+            let totalP = 0, totalT = 0;
+            allKeys.forEach(dept => {
+                const st = gradeStats[dept];
+                totalP += st.present; totalT += st.total;
+                csv += `"${dn[dept]} 소계","","","${st.present}/${st.total}"\n`;
+            });
+            csv += `"전체","","","${totalP}/${totalT} (${totalT ? Math.round(totalP/totalT*100) : 0}%)"\n`;
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a'); link.href = window.URL.createObjectURL(blob); link.download = `출석부_${y}년${m}월_${w}주차(${dateStr}).csv`; link.click();
             showToast('다운로드', 'success');
