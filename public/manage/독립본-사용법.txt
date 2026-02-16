@@ -1,0 +1,29 @@
+■ 주일학교 학생관리 - 다른 웹사이트 붙여넣기용
+
+【 파일 】
+  주일학교-학생관리-독립본.html  ← 이 파일 하나만 있으면 됩니다.
+
+【 사용법 】
+  1) 같은 서버/같은 사이트에 넣을 때
+     · 이 HTML 파일을 그대로 업로드하거나, 내용 전체를 복사해서 새 페이지에 붙여넣기.
+     · 그 사이트에 /api/students, /api/attendance, /api/notes API가 있어야 합니다.
+     · 수정 없이 사용하면 됩니다.
+
+  2) 완전히 다른 웹사이트(다른 도메인)에 넣을 때
+     · HTML 파일을 연 다음, <script> 태그 안 맨 위를 찾아서
+       var API_BASE_OVERRIDE = '';
+     · 여기를 아래처럼 바꿉니다.
+       var API_BASE_OVERRIDE = 'https://데이터가있는사이트주소.vercel.app';
+     · 저장한 뒤 그 HTML을 새 사이트에 업로드하거나 붙여넣기.
+     · 데이터는 위 주소의 API를 쓰므로, 그 서버에 API + Supabase 설정이 있어야 합니다.
+
+【 필요한 백엔드 (데이터가 저장되는 쪽) 】
+  · /api/students  (GET, POST, PATCH, DELETE)
+  · /api/attendance (GET, POST)
+  · /api/notes (GET, POST)
+  · Supabase: students, attendance, student_notes 테이블 및 env 설정
+
+【 복사 붙여넣기 】
+  · 주일학교-학생관리-독립본.html 을 메모장/VS Code 등으로 열고
+    Ctrl+A (전체 선택) → Ctrl+C (복사) 한 뒤
+    새 HTML 파일에 Ctrl+V (붙여넣기) 하면 됩니다.
