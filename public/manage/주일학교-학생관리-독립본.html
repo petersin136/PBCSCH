@@ -109,11 +109,6 @@
         .status-badge.danger { background: var(--danger-light); color: var(--danger); }
         .status-badge.dormant { background: var(--gray-200); color: var(--gray-600); }
 
-        .consent-badge { display: inline-flex; padding: 0.12rem 0.35rem; border-radius: 8px; font-size: 0.55rem; font-weight: 600; }
-        .consent-badge.complete { background: var(--success-light); color: var(--success); }
-        .consent-badge.pending { background: var(--warning-light); color: var(--warning); }
-        .consent-badge.none { background: var(--gray-200); color: var(--gray-500); }
-
         .prayer-badge { display: inline-flex; align-items: center; gap: 0.15rem; padding: 0.1rem 0.3rem; background: var(--purple-light); color: var(--purple); border-radius: 5px; font-size: 0.55rem; cursor: pointer; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         /* 액션 */
@@ -126,8 +121,11 @@
         .notes-overlay.active { display:flex; }
         .notes-modal { background:white; border-radius:16px; width:100%; max-width:520px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
         .notes-modal-header { display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; border-bottom:1px solid var(--gray-200); background:var(--gray-50); }
-        .notes-modal-header h3 { font-size:1rem; font-weight:700; color:var(--gray-800); display:flex; align-items:center; gap:0.4rem; }
+        .notes-modal-header h3 { font-size:1rem; font-weight:700; color:var(--gray-800); display:flex; align-items:center; gap:0.5rem; }
         .notes-modal-header h3 small { font-size:0.75rem; font-weight:400; color:var(--gray-500); }
+        .notes-profile-photo { flex-shrink: 0; width: 50px; height: 50px; }
+        .notes-profile-photo .notes-profile-img { width: 50px; height: 50px; min-width: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gray-200); display: block; }
+        .notes-profile-photo .notes-profile-placeholder { width: 50px; height: 50px; min-width: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--gray-200), var(--gray-300)); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--gray-500); }
         .notes-modal-close { border:none; background:none; font-size:1.4rem; cursor:pointer; color:var(--gray-500); padding:4px 8px; border-radius:8px; }
         .notes-modal-close:hover { background:var(--gray-200); }
         .notes-modal-body { flex:1; overflow-y:auto; padding:0.75rem 1rem; }
@@ -264,17 +262,7 @@
         .profile-upload-text { font-size: 0.55rem; color: var(--gray-500); }
         .profile-remove-btn { position: absolute; top: 0; right: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--danger); color: white; border: none; cursor: pointer; font-size: 0.65rem; }
 
-        /* 동의서 업로드 */
-        .file-upload-area { border: 2px dashed var(--gray-300); border-radius: 8px; padding: 0.85rem; text-align: center; cursor: pointer; background: var(--gray-50); }
-        .file-upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
-        .file-upload-area.has-file { border-color: var(--success); background: var(--success-light); }
-        .file-upload-icon { font-size: 1.3rem; }
-        .file-upload-text { font-size: 0.7rem; color: var(--gray-600); }
-        .file-upload-hint { font-size: 0.6rem; color: var(--gray-400); }
         .file-input { display: none; }
-        .consent-preview { margin-top: 0.6rem; position: relative; display: inline-block; }
-        .consent-preview img { max-width: 100%; max-height: 120px; border-radius: 6px; border: 1px solid var(--gray-200); }
-        .consent-preview-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--danger); color: white; border: none; cursor: pointer; font-size: 0.6rem; }
 
         /* 토스트 */
         .toast { position: fixed; bottom: 1rem; right: 1rem; padding: 0.6rem 1rem; background: var(--gray-800); color: white; border-radius: 6px; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 2000; font-size: 0.8rem; }
@@ -359,7 +347,7 @@
             <div class="table-header"><span class="table-title">📋 학생 목록</span><span id="studentCount">0명</span></div>
             <div class="table-wrapper">
                 <table>
-                    <thead><tr><th>학생</th><th>학년</th><th>상태</th><th class="hide-mobile">출석</th><th>결석</th><th class="hide-mobile">담당</th><th>동의</th><th class="hide-mobile">기도</th><th>액션</th></tr></thead>
+                    <thead><tr><th>학생</th><th>학년</th><th>상태</th><th class="hide-mobile">출석</th><th>결석</th><th class="hide-mobile">담당</th><th class="hide-mobile">기도</th><th>액션</th></tr></thead>
                     <tbody id="studentTable"></tbody>
                 </table>
             </div>
@@ -412,13 +400,6 @@
                     <div class="form-group"><label class="form-label">소그룹/담당교사</label><input type="text" class="form-input" id="owner" placeholder="담당 교사명"></div>
                     <div class="section-title">🙏 기도제목</div>
                     <div class="form-group"><textarea class="form-textarea" id="prayer" placeholder="이 친구를 위해 기도하는 내용..."></textarea></div>
-                    <div class="section-title">📋 학부모 동의서</div>
-                    <div class="form-group">
-                        <div class="checkbox-group" style="margin-bottom:0.6rem;"><label class="checkbox-label"><input type="checkbox" id="consentChecked"> 동의서 수령 완료</label></div>
-                        <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('consentFile').click()"><div class="file-upload-icon">📄</div><div class="file-upload-text">동의서 사진 첨부</div><div class="file-upload-hint">클릭하여 업로드</div></div>
-                        <input type="file" class="file-input" id="consentFile" accept="image/*" onchange="handleConsentUpload(event)">
-                        <div class="consent-preview" id="consentPreview" style="display:none;"><img id="consentPreviewImg" src=""><button type="button" class="consent-preview-remove" onclick="removeConsentImage()">✕</button></div>
-                    </div>
                     <div class="section-title">📊 케어 정보</div>
                     <div class="form-row">
                         <div class="form-group"><label class="form-label">최근 출석일</label><input type="date" class="form-input" id="lastAttend"></div>
@@ -471,7 +452,7 @@
     <div class="notes-overlay" id="notesOverlay" onclick="closeNotesModal()">
         <div class="notes-modal" onclick="event.stopPropagation()">
             <div class="notes-modal-header">
-                <h3 id="notesTitle">📋 <span id="notesStudentName">학생</span> <small>주간 기록</small></h3>
+                <h3 id="notesTitle"><span id="notesProfilePhoto" class="notes-profile-photo"></span>📋 <span id="notesStudentName">학생</span> <small>주간 기록</small></h3>
                 <button class="notes-modal-close" onclick="closeNotesModal()">&times;</button>
             </div>
             <div class="notes-modal-body">
@@ -507,7 +488,7 @@
         let attendance = {};
         let currentDept = 'all', currentFilter = 'all', editingId = null;
         let currentYear = 2026, currentMonth = 1, currentWeek = 1;
-        let currentProfileImage = null, currentConsentImage = null;
+        let currentProfileImage = null;
         let dbReady = false;
 
         const GRADE_OWNERS = { '1학년':'박영미 선생님', '2학년':'박영미 선생님', '3학년':'박수나 선생님', '4학년':'이주희 선생님', '5학년':'심미래 선생님', '6학년':'김은경 선생님' };
@@ -567,6 +548,7 @@
 
         /* ===== DB 저장 헬퍼 ===== */
         async function apiSaveStudent(student) {
+            if (!student || student.id == null) { showToast('수정 대상 ID 없음', 'error'); return; }
             try {
                 var res = await fetch(API_BASE + '/api/students', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(student) });
                 if (!res.ok) showToast('서버 저장 실패', 'error');
@@ -633,7 +615,6 @@
                     <td class="hide-mobile">${formatDate(s.lastAttend)}</td>
                     <td style="color:${s.absenceWeeks>=2?'var(--danger)':''};font-weight:${s.absenceWeeks>=2?'600':'400'}">${s.absenceWeeks>0?'⚠️':''}${s.absenceWeeks}주</td>
                     <td class="hide-mobile" style="white-space:nowrap">${s.owner||'-'}</td>
-                    <td><span class="consent-badge ${s.consentImage?'complete':s.consentChecked?'pending':'none'}" onclick="${s.consentImage?`viewConsent(${s.id})`:''}" style="${s.consentImage?'cursor:pointer':''}">${s.consentImage?'✓완료':s.consentChecked?'대기':'미동의'}</span></td>
                     <td class="hide-mobile">${s.prayer?`<span class="prayer-badge" onclick="showPrayer(${s.id})" title="${s.prayer}">🙏${s.prayer.substring(0,5)}${s.prayer.length>5?'..':''}</span>`:'-'}</td>
                     <td style="white-space:nowrap"><button class="action-btn" onclick="openModal('edit',${s.id})">✏️</button><button class="action-btn" onclick="callStudent(${s.id})">📞</button><button class="action-btn delete" onclick="deleteStudent(${s.id})">🗑️</button></td>
                 </tr>`).join('');
@@ -709,8 +690,8 @@
         /* ===== 모달 ===== */
         function openModal(mode,id=null) {
             const modal=document.getElementById('studentModal'),form=document.getElementById('studentForm'); form.reset(); document.querySelectorAll('input[name="reason"]').forEach(cb=>cb.checked=false);
-            currentProfileImage=null;currentConsentImage=null; document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>'; document.getElementById('profileUploadArea').classList.remove('has-image'); document.getElementById('consentPreview').style.display='none'; document.getElementById('fileUploadArea').classList.remove('has-file');
-            if(mode==='edit'&&id){editingId=id;document.getElementById('modalTitle').textContent='학생 정보 수정';const s=students.find(st=>st.id===id);if(s){document.getElementById('name').value=s.name;document.getElementById('grade').value=s.grade;document.getElementById('parentContact').value=s.parentContact||'';document.getElementById('studentContact').value=s.studentContact||'';document.getElementById('firstVisit').value=s.firstVisit||'';document.getElementById('status').value=s.status;document.getElementById('owner').value=s.owner||'';document.getElementById('prayer').value=s.prayer||'';document.getElementById('lastAttend').value=s.lastAttend||'';document.getElementById('absenceWeeks').value=s.absenceWeeks;document.getElementById('lastContact').value=s.lastContact||'';document.getElementById('contactMethod').value=s.contactMethod||'';document.getElementById('memo').value=s.memo||'';document.getElementById('consentChecked').checked=s.consentChecked||false;if(s.profileImage){currentProfileImage=s.profileImage;document.getElementById('profileUploadArea').innerHTML=`<img src="${s.profileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}if(s.consentImage){currentConsentImage=s.consentImage;document.getElementById('consentPreviewImg').src=s.consentImage;document.getElementById('consentPreview').style.display='inline-block';document.getElementById('fileUploadArea').classList.add('has-file');}s.reasons?.forEach(r=>{const cb=document.querySelector(`input[name="reason"][value="${r}"]`);if(cb)cb.checked=true;});}}else{editingId=null;document.getElementById('modalTitle').textContent='학생 등록';document.getElementById('firstVisit').value=new Date().toISOString().split('T')[0];}
+            currentProfileImage=null; document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>'; document.getElementById('profileUploadArea').classList.remove('has-image');
+            if(mode==='edit'&&id){editingId=id;document.getElementById('modalTitle').textContent='학생 정보 수정';const s=students.find(st=>st.id===id);if(s){document.getElementById('name').value=s.name;document.getElementById('grade').value=s.grade;document.getElementById('parentContact').value=s.parentContact||'';document.getElementById('studentContact').value=s.studentContact||'';document.getElementById('firstVisit').value=s.firstVisit||'';document.getElementById('status').value=s.status;document.getElementById('owner').value=s.owner||'';document.getElementById('prayer').value=s.prayer||'';document.getElementById('lastAttend').value=s.lastAttend||'';document.getElementById('absenceWeeks').value=s.absenceWeeks;document.getElementById('lastContact').value=s.lastContact||'';document.getElementById('contactMethod').value=s.contactMethod||'';document.getElementById('memo').value=s.memo||'';if(s.profileImage){currentProfileImage=s.profileImage;document.getElementById('profileUploadArea').innerHTML=`<img src="${s.profileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}s.reasons?.forEach(r=>{const cb=document.querySelector(`input[name="reason"][value="${r}"]`);if(cb)cb.checked=true;});}}else{editingId=null;document.getElementById('modalTitle').textContent='학생 등록';document.getElementById('firstVisit').value=new Date().toISOString().split('T')[0];}
             modal.classList.add('active');
             try { window.parent.postMessage({ type: 'pbcs_modal_opened' }, '*'); } catch(_) {}
         }
@@ -719,11 +700,8 @@
         /* ===== 이미지 업로드/압축 ===== */
         async function handleProfileUpload(e) { const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024){showToast('5MB초과','error');return;}if(!f.type.startsWith('image/')){showToast('이미지만','error');return;} try{const dataUrl=await compressImageToMax(f,100*1024);currentProfileImage=dataUrl;document.getElementById('profileUploadArea').innerHTML=`<img src="${currentProfileImage}"><button type="button" class="profile-remove-btn" onclick="event.stopPropagation();removeProfileImage()">✕</button>`;document.getElementById('profileUploadArea').classList.add('has-image');}catch(err){showToast('이미지 압축 실패','error');}}
         function removeProfileImage() { currentProfileImage=null;document.getElementById('profileUploadArea').innerHTML='<span class="profile-upload-icon">📷</span><span class="profile-upload-text">사진</span>';document.getElementById('profileUploadArea').classList.remove('has-image');document.getElementById('profileFile').value=''; }
-        async function handleConsentUpload(e) { const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024){showToast('5MB초과','error');return;}if(!f.type.startsWith('image/')){showToast('이미지만','error');return;} try{const dataUrl=await compressImageToMax(f,100*1024);currentConsentImage=dataUrl;document.getElementById('consentPreviewImg').src=currentConsentImage;document.getElementById('consentPreview').style.display='inline-block';document.getElementById('fileUploadArea').classList.add('has-file');document.getElementById('consentChecked').checked=true;}catch(err){showToast('이미지 압축 실패','error');}}
         async function compressImageToMax(file, maxBytes){const img=await readImage(file);const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas');let {width,height}=img;const maxDim=900; if(Math.max(width,height)>maxDim){const scale=maxDim/Math.max(width,height);width=Math.round(width*scale);height=Math.round(height*scale);}canvas.width=width;canvas.height=height;ctx.drawImage(img,0,0,width,height);let quality=0.8;let dataUrl=canvas.toDataURL('image/jpeg',quality);while(dataUrl.length*0.75>maxBytes&&quality>0.4){quality-=0.1;dataUrl=canvas.toDataURL('image/jpeg',quality);}while(dataUrl.length*0.75>maxBytes&&Math.max(width,height)>420){width=Math.round(width*0.85);height=Math.round(height*0.85);canvas.width=width;canvas.height=height;ctx.drawImage(img,0,0,width,height);quality=0.7;dataUrl=canvas.toDataURL('image/jpeg',quality);}if(dataUrl.length*0.75>maxBytes){throw new Error('too_big');}return dataUrl;}
         function readImage(file){return new Promise((resolve,reject)=>{const img=new Image();const r=new FileReader();r.onload=()=>{img.onload=()=>resolve(img);img.onerror=reject;img.src=r.result;};r.onerror=reject;r.readAsDataURL(file);});}
-        function removeConsentImage() { currentConsentImage=null;document.getElementById('consentPreviewImg').src='';document.getElementById('consentPreview').style.display='none';document.getElementById('fileUploadArea').classList.remove('has-file');document.getElementById('consentFile').value=''; }
-        function viewConsent(id) { const s=students.find(st=>st.id===id);if(s&&s.consentImage){const w=window.open('','_blank');w.document.write(`<html><head><title>${s.name} 동의서</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1f2937;}img{max-width:95vw;max-height:95vh;border-radius:8px;}</style></head><body><img src="${s.consentImage}"></body></html>`);} }
         function showPrayer(id) { const s=students.find(st=>st.id===id);if(s&&s.prayer){alert(`🙏 ${s.name} 기도제목\n\n${s.prayer}`);} }
 
         /* ===== 학생 저장/삭제 (Supabase 연동) ===== */
@@ -731,12 +709,14 @@
             const name=document.getElementById('name').value.trim(), grade=document.getElementById('grade').value;
             if(!name||!grade){showToast('이름/학년 필수','error');return;}
             const reasons=[];document.querySelectorAll('input[name="reason"]:checked').forEach(cb=>reasons.push(cb.value));
-            const data={name,grade,parentContact:document.getElementById('parentContact').value,studentContact:document.getElementById('studentContact').value,firstVisit:document.getElementById('firstVisit').value,status:document.getElementById('status').value,owner:document.getElementById('owner').value,prayer:document.getElementById('prayer').value,lastAttend:document.getElementById('lastAttend').value,absenceWeeks:parseInt(document.getElementById('absenceWeeks').value)||0,lastContact:document.getElementById('lastContact').value,contactMethod:document.getElementById('contactMethod').value,reasons,memo:document.getElementById('memo').value,consentChecked:document.getElementById('consentChecked').checked,consentImage:currentConsentImage,profileImage:currentProfileImage};
-            if(editingId){
+            const data={name,grade,parentContact:document.getElementById('parentContact').value,studentContact:document.getElementById('studentContact').value,firstVisit:document.getElementById('firstVisit').value,status:document.getElementById('status').value,owner:document.getElementById('owner').value,prayer:document.getElementById('prayer').value,lastAttend:document.getElementById('lastAttend').value,absenceWeeks:parseInt(document.getElementById('absenceWeeks').value)||0,lastContact:document.getElementById('lastContact').value,contactMethod:document.getElementById('contactMethod').value,reasons,memo:document.getElementById('memo').value,profileImage:currentProfileImage};
+            if(editingId!=null&&editingId!==''){
+                const currentStudent=students.find(s=>s.id===editingId);
+                const idToSave=currentStudent?currentStudent.id:editingId;
                 const idx=students.findIndex(s=>s.id===editingId);
                 if(idx!==-1) students[idx]={...students[idx],...data};
                 renderAll(); closeModal();
-                await apiSaveStudent({...data, id: editingId});
+                await apiSaveStudent({...data, id: idToSave});
                 showToast('수정완료','success');
             } else {
                 data.id=Date.now();
@@ -763,7 +743,7 @@
             if (phone) {
                 s.lastContact = new Date().toISOString().split('T')[0];
                 renderTable();
-                apiSaveStudent(s);
+                apiSaveStudent({ ...s, id: s.id });
                 window.location.href = 'tel:' + phone;
             } else {
                 showToast('연락처가 없습니다', 'error');
@@ -785,6 +765,8 @@
             notesMonth = currentMonth;
             var suns = getSundaysInMonth(notesYear, notesMonth);
             notesSelectedWeek = Math.min(currentWeek, suns.length);
+            var photoEl = document.getElementById('notesProfilePhoto');
+            photoEl.innerHTML = s.profileImage ? '<img src="' + s.profileImage + '" class="notes-profile-img" alt="">' : '<div class="notes-profile-placeholder">👤</div>';
             document.getElementById('notesStudentName').textContent = s.name + ' (' + s.grade + ')';
 
             var cr = document.getElementById('notesContactRow');
@@ -918,10 +900,10 @@
 
         /* ===== 엑셀 / 토스트 ===== */
         function exportToExcel() {
-            const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','동의','기도제목','메모'];
+            const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','기도제목','메모'];
             const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};
             let csv='\uFEFF'+h.join(',')+'\n';
-            students.forEach(s=>{const r=[s.name,s.grade,dn[getDept(s.grade)],s.parentContact||'',s.studentContact||'',s.firstVisit||'',s.status,s.lastAttend||'',s.absenceWeeks,s.owner||'',s.lastContact||'',s.consentImage?'완료':s.consentChecked?'대기':'미동의',(s.prayer||'').replace(/,/g,' '),(s.memo||'').replace(/,/g,' ')];csv+=r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')+'\n';});
+            students.forEach(s=>{const r=[s.name,s.grade,dn[getDept(s.grade)],s.parentContact||'',s.studentContact||'',s.firstVisit||'',s.status,s.lastAttend||'',s.absenceWeeks,s.owner||'',s.lastContact||'',(s.prayer||'').replace(/,/g,' '),(s.memo||'').replace(/,/g,' ')];csv+=r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')+'\n';});
             csv+='\n';
             csv+='"【 합계 】",""\n';
             csv+=`"전체 인원","${students.length}명"\n`;
@@ -932,13 +914,6 @@
             students.forEach(s=>{if(statusCounts[s.status]!==undefined)statusCounts[s.status]++;});
             csv+='"상태별",""\n';
             ['새친구','정착','간헐','위험','휴면'].forEach(st=>{csv+=`"${st}","${statusCounts[st]}명"\n`;});
-            const consentComplete=students.filter(s=>s.consentImage).length;
-            const consentPending=students.filter(s=>s.consentChecked&&!s.consentImage).length;
-            const consentNone=students.length-consentComplete-consentPending;
-            csv+='"동의서",""\n';
-            csv+=`"완료","${consentComplete}명"\n`;
-            csv+=`"대기","${consentPending}명"\n`;
-            csv+=`"미동의","${consentNone}명"\n`;
             const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
             const link=document.createElement('a');link.href=window.URL.createObjectURL(blob);link.download=`주일학교_${currentYear}.csv`;link.click();
             showToast('다운로드','success');
