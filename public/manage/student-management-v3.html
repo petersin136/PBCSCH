@@ -259,6 +259,244 @@
         .toast.success { background: var(--success); }
         .toast.error { background: var(--danger); }
 
+        /* ===== 엑셀 내보내기 모달 리디자인 ===== */
+        #exportModal .export-modal {
+          background: #fff;
+          border-radius: 16px;
+          max-width: 440px;
+          width: 92vw;
+          box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+          overflow: hidden;
+          animation: exportSlideUp 0.25s ease-out;
+        }
+
+        @keyframes exportSlideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        #exportModal .export-modal-header {
+          background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%);
+          padding: 18px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        #exportModal .export-modal-title {
+          color: #fff;
+          font-size: 17px;
+          font-weight: 700;
+        }
+
+        #exportModal .export-modal-close {
+          background: rgba(255,255,255,0.15);
+          border: none;
+          color: #fff;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          font-size: 20px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s;
+        }
+        #exportModal .export-modal-close:hover {
+          background: rgba(255,255,255,0.3);
+        }
+
+        #exportModal .export-modal-body {
+          padding: 16px;
+          max-height: 60vh;
+          overflow-y: auto;
+        }
+
+        #exportModal .export-section-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--gray-500);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+          padding-left: 4px;
+        }
+
+        #exportModal .export-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          border: 2px solid #E2E8F0;
+          border-radius: 12px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          background: #F8FAFC;
+          position: relative;
+        }
+        #exportModal .export-card:hover {
+          border-color: #93C5FD;
+          background: #F1F5F9;
+        }
+        #exportModal .export-card input[type="radio"] {
+          display: none;
+        }
+        #exportModal .export-card-check {
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          border: 2px solid #CBD5E1;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          background: #fff;
+        }
+        #exportModal .export-card-icon {
+          font-size: 24px;
+          flex-shrink: 0;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff;
+          border-radius: 10px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        #exportModal .export-card-content {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        #exportModal .export-card-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1E293B;
+        }
+        #exportModal .export-card-desc {
+          font-size: 11px;
+          color: #64748B;
+        }
+        #exportModal .export-card:has(input:checked) {
+          border-color: #2563EB;
+          background: #EFF6FF;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        #exportModal .export-card:has(input:checked) .export-card-check {
+          border-color: #2563EB;
+          background: #2563EB;
+        }
+        #exportModal .export-card:has(input:checked) .export-card-check::after {
+          content: '✓';
+          color: #fff;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        #exportModal .export-card-sub {
+          display: none;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+          padding: 10px 14px 10px 52px;
+          margin-top: -6px;
+          margin-bottom: 8px;
+          background: #EFF6FF;
+          border-radius: 0 0 12px 12px;
+          border: 1px solid #93C5FD;
+          border-top: none;
+          font-size: 13px;
+          color: #1E293B;
+          animation: exportSubSlide 0.2s ease-out;
+        }
+
+        @keyframes exportSubSlide {
+          from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+          to { opacity: 1; max-height: 60px; }
+        }
+
+        #exportModal .export-select {
+          padding: 6px 10px;
+          border: 1.5px solid #E2E8F0;
+          border-radius: 8px;
+          font-size: 13px;
+          background: #fff;
+          color: #1E293B;
+          outline: none;
+          transition: border-color 0.2s;
+          cursor: pointer;
+        }
+        #exportModal .export-select:focus {
+          border-color: #2563EB;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        #exportModal .export-divider {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 14px 0 10px;
+          font-size: 12px;
+          font-weight: 700;
+          color: #64748B;
+          letter-spacing: 0.5px;
+        }
+        #exportModal .export-divider::before,
+        #exportModal .export-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: #E2E8F0;
+        }
+
+        #exportModal .export-modal-footer {
+          padding: 14px 16px;
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          border-top: 1px solid #E2E8F0;
+          background: #FAFBFC;
+        }
+
+        #exportModal .export-btn-cancel {
+          padding: 10px 20px;
+          border: 1.5px solid #E2E8F0;
+          border-radius: 10px;
+          background: #fff;
+          color: #64748B;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        #exportModal .export-btn-cancel:hover {
+          background: #F1F5F9;
+          border-color: #CBD5E1;
+          color: #1E293B;
+        }
+
+        #exportModal .export-btn-download {
+          padding: 10px 24px;
+          border: none;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+          color: #fff;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+        }
+        #exportModal .export-btn-download:hover {
+          background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+          box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+          transform: translateY(-1px);
+        }
         /* 반응형 - 모바일: 학생 칸 넓게, 사진 크게, 두 줄 레이아웃 */
         @media (max-width: 640px) {
             .main { padding: 0.4rem; }
@@ -283,6 +521,8 @@
             .action-btn { padding: 0.35rem 0.5rem; font-size: 0.7rem; }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <div id="apiErrorBanner" class="api-error-banner" role="alert">
@@ -414,26 +654,161 @@
         </div>
     </div>
 
-    <!-- 엑셀 내보내기 모달 -->
-    <div class="modal-overlay" id="exportModal">
-        <div class="modal" style="max-width:360px;">
-            <div class="modal-header"><span class="modal-title">📊 엑셀 내보내기</span><button class="modal-close" onclick="closeExportModal()">&times;</button></div>
-            <div class="modal-body" style="padding:0.75rem;">
-                <div class="export-option" style="margin-bottom:0.6rem;"><label class="checkbox-label"><input type="radio" name="exportType" value="list" checked> 전체 명단 (학생 정보)</label></div>
-                <div class="export-option" style="margin-bottom:0.6rem;"><label class="checkbox-label"><input type="radio" name="exportType" value="attendance-now"> 출석부 - 현재 보는 주</label></div>
-                <div class="export-option" style="margin-bottom:0.5rem;"><label class="checkbox-label"><input type="radio" name="exportType" value="attendance-pick" onchange="document.getElementById('exportPickRow').style.display=this.checked?'flex':'none'"> 출석부 - 연·월·주 선택</label></div>
-                <div id="exportPickRow" style="display:none;gap:0.4rem;flex-wrap:wrap;align-items:center;margin-top:0.4rem;">
-                    <select id="exportYear" class="form-select" style="width:80px;" onchange="fillExportWeek()"></select>
-                    <span>년</span>
-                    <select id="exportMonth" class="form-select" style="width:70px;" onchange="fillExportWeek()"></select>
-                    <span>월</span>
-                    <select id="exportWeek" class="form-select" style="width:60px;"></select>
-                    <span>주</span>
-                </div>
+        <!-- 엑셀 내보내기 모달 -->
+        <div class="modal-overlay" id="exportModal">
+          <div class="export-modal">
+            <div class="export-modal-header">
+              <span class="export-modal-title">📊 엑셀 내보내기</span>
+              <button class="export-modal-close" onclick="closeExportModal()">&times;</button>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeExportModal()">취소</button><button class="btn btn-primary" onclick="doExport()">다운로드</button></div>
+            <div class="export-modal-body">
+
+              <div class="export-section-label">📥 기본 다운로드</div>
+
+              <label class="export-card">
+                <input type="radio" name="exportType" value="list" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📋</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">전체 명단</span>
+                  <span class="export-card-desc">학생 정보를 CSV로 다운로드</span>
+                </span>
+              </label>
+
+              <label class="export-card">
+                <input type="radio" name="exportType" value="attendance-now" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📅</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">현재 보는 주</span>
+                  <span class="export-card-desc">현재 화면에 표시된 주차 출석부</span>
+                </span>
+              </label>
+
+              <label class="export-card has-sub">
+                <input type="radio" name="exportType" value="attendance-pick" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">🔍</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">연·월·주 선택</span>
+                  <span class="export-card-desc">특정 주차를 골라서 다운로드</span>
+                </span>
+              </label>
+              <div class="export-card-sub" id="exportPickRow">
+                <select id="exportYear" class="export-select" onchange="fillExportWeek()"></select><span>년</span>
+                <select id="exportMonth" class="export-select" onchange="fillExportWeek()"></select><span>월</span>
+                <select id="exportWeek" class="export-select"></select><span>주</span>
+              </div>
+
+              <div class="export-divider"><span>🖨️ PDF 보고서 (인쇄용)</span></div>
+
+              <label class="export-card has-sub">
+                <input type="radio" name="exportType" value="pdf-quarter" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📄</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">분기별 PDF 보고서</span>
+                  <span class="export-card-desc">목사님께 제출용 — 깔끔한 인쇄 보고서</span>
+                </span>
+              </label>
+              <div class="export-card-sub" id="exportPdfQuarterRow">
+                <select id="exportPdfQYear" class="export-select"></select><span>년</span>
+                <select id="exportPdfQuarter" class="export-select">
+                  <option value="1">1분기 (1~3월)</option>
+                  <option value="2">2분기 (4~6월)</option>
+                  <option value="3">3분기 (7~9월)</option>
+                  <option value="4">4분기 (10~12월)</option>
+                </select>
+              </div>
+
+              <label class="export-card has-sub">
+                <input type="radio" name="exportType" value="pdf-half" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📄</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">반기별 PDF 보고서</span>
+                  <span class="export-card-desc">6개월 출석 현황 인쇄 보고서</span>
+                </span>
+              </label>
+              <div class="export-card-sub" id="exportPdfHalfRow">
+                <select id="exportPdfHYear" class="export-select"></select><span>년</span>
+                <select id="exportPdfHalf" class="export-select">
+                  <option value="1">상반기 (1~6월)</option>
+                  <option value="2">하반기 (7~12월)</option>
+                </select>
+              </div>
+
+              <label class="export-card has-sub">
+                <input type="radio" name="exportType" value="pdf-yearly" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📄</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">연간 PDF 보고서</span>
+                  <span class="export-card-desc">1년 전체 출석 현황 인쇄 보고서</span>
+                </span>
+              </label>
+              <div class="export-card-sub" id="exportPdfYearlyRow">
+                <select id="exportPdfYYear" class="export-select"></select><span>년</span>
+              </div>
+
+              <div class="export-divider"><span>📑 기간별 보고서</span></div>
+
+              <label class="export-card has-sub">
+                <input type="radio" name="exportType" value="quarter" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📊</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">분기별 보고서</span>
+                  <span class="export-card-desc">3개월 단위 출석 현황 (.xlsx)</span>
+                </span>
+              </label>
+              <div class="export-card-sub" id="exportQuarterRow">
+                <select id="exportQYear" class="export-select"></select><span>년</span>
+                <select id="exportQuarter" class="export-select">
+                  <option value="1">1분기 (1~3월)</option>
+                  <option value="2">2분기 (4~6월)</option>
+                  <option value="3">3분기 (7~9월)</option>
+                  <option value="4">4분기 (10~12월)</option>
+                </select>
+              </div>
+
+              <label class="export-card has-sub">
+                <input type="radio" name="exportType" value="half" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📈</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">반기별 보고서</span>
+                  <span class="export-card-desc">6개월 단위 출석 현황 (.xlsx)</span>
+                </span>
+              </label>
+              <div class="export-card-sub" id="exportHalfRow">
+                <select id="exportHYear" class="export-select"></select><span>년</span>
+                <select id="exportHalf" class="export-select">
+                  <option value="1">상반기 (1~6월)</option>
+                  <option value="2">하반기 (7~12월)</option>
+                </select>
+              </div>
+
+              <label class="export-card has-sub">
+                <input type="radio" name="exportType" value="yearly" onchange="toggleExportOptions()">
+                <span class="export-card-check"></span>
+                <span class="export-card-icon">📆</span>
+                <span class="export-card-content">
+                  <span class="export-card-title">연간 보고서</span>
+                  <span class="export-card-desc">1년 전체 출석 현황 (.xlsx)</span>
+                </span>
+              </label>
+              <div class="export-card-sub" id="exportYearlyRow">
+                <select id="exportYYear" class="export-select"></select><span>년</span>
+              </div>
+
+            </div>
+            <div class="export-modal-footer">
+              <button class="export-btn-cancel" onclick="closeExportModal()">취소</button>
+              <button class="export-btn-download" onclick="doExport()">⬇ 다운로드</button>
+            </div>
+          </div>
         </div>
-    </div>
 
     <div class="toast" id="toast"></div>
 
@@ -887,6 +1262,40 @@
         }
 
         /* ===== 엑셀 / 토스트 ===== */
+        function toggleExportOptions() {
+            var type = document.querySelector('input[name="exportType"]:checked');
+            var val = type ? type.value : '';
+            ['exportPickRow','exportQuarterRow','exportHalfRow','exportYearlyRow',
+             'exportPdfQuarterRow','exportPdfHalfRow','exportPdfYearlyRow'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            document.querySelectorAll('#exportModal .export-card.has-sub').forEach(function(card) {
+                card.style.borderRadius = '12px';
+                card.style.marginBottom = '8px';
+            });
+            var subMap = {
+                'attendance-pick': 'exportPickRow',
+                'quarter': 'exportQuarterRow',
+                'half': 'exportHalfRow',
+                'yearly': 'exportYearlyRow',
+                'pdf-quarter': 'exportPdfQuarterRow',
+                'pdf-half': 'exportPdfHalfRow',
+                'pdf-yearly': 'exportPdfYearlyRow'
+            };
+            if (subMap[val]) {
+                var subEl = document.getElementById(subMap[val]);
+                if (subEl) {
+                    subEl.style.display = 'flex';
+                    var card = subEl.previousElementSibling;
+                    if (card && card.classList.contains('export-card')) {
+                        card.style.borderRadius = '12px 12px 0 0';
+                        card.style.marginBottom = '0';
+                    }
+                }
+            }
+        }
+
         function exportToExcel() {
             const h=['이름','학년','학년부','보호자','학생번호','첫방문','상태','최근출석','결석주','담당','연락일','기도제목','메모'];
             const dn={grade1:'1학년',grade2:'2학년',grade3:'3학년',grade4:'4학년',grade5:'5학년',grade6:'6학년'};
@@ -958,23 +1367,859 @@
             if (mSel) { mSel.innerHTML = ''; for (var i = 1; i <= 12; i++) { var o = document.createElement('option'); o.value = i; o.textContent = i + '월'; if (i === currentMonth) o.selected = true; mSel.appendChild(o); } }
             fillExportWeek();
             if (wSel && wSel.options.length >= currentWeek) wSel.value = String(currentWeek);
+            ['exportQYear','exportHYear','exportYYear','exportPdfQYear','exportPdfHYear','exportPdfYYear'].forEach(function(id) {
+                var sel = document.getElementById(id);
+                if (sel) {
+                    sel.innerHTML = '';
+                    for (var i = y - 2; i <= y + 1; i++) {
+                        var o = document.createElement('option'); o.value = i; o.textContent = i + '년';
+                        if (i === currentYear) o.selected = true;
+                        sel.appendChild(o);
+                    }
+                }
+            });
+            var qSel = document.getElementById('exportQuarter');
+            if (qSel) qSel.value = String(Math.ceil(currentMonth / 3));
+            var hSel = document.getElementById('exportHalf');
+            if (hSel) hSel.value = currentMonth <= 6 ? '1' : '2';
+            var pqSel = document.getElementById('exportPdfQuarter');
+            if (pqSel) pqSel.value = String(Math.ceil(currentMonth / 3));
+            var phSel = document.getElementById('exportPdfHalf');
+            if (phSel) phSel.value = currentMonth <= 6 ? '1' : '2';
             document.querySelectorAll('input[name="exportType"]').forEach(function(r) { r.checked = r.value === 'list'; });
-            document.getElementById('exportPickRow').style.display = 'none';
+            ['exportPickRow','exportQuarterRow','exportHalfRow','exportYearlyRow',
+             'exportPdfQuarterRow','exportPdfHalfRow','exportPdfYearlyRow'].forEach(function(id) {
+                var row = document.getElementById(id);
+                if (row) row.style.display = 'none';
+            });
+            toggleExportOptions();
             modal.classList.add('active');
         }
         function closeExportModal() { var m = document.getElementById('exportModal'); if (m) m.classList.remove('active'); }
         function doExport() {
             var t = document.querySelector('input[name="exportType"]:checked');
-            if (t && t.value === 'list') { exportToExcel(); closeExportModal(); return; }
-            if (t && t.value === 'attendance-now') { exportAttendanceCSV(currentYear, currentMonth, currentWeek); closeExportModal(); return; }
-            if (t && t.value === 'attendance-pick') {
+            if (!t) return;
+            var val = t.value;
+
+            if (val === 'list') { exportToExcel(); closeExportModal(); return; }
+            if (val === 'attendance-now') { exportAttendanceCSV(currentYear, currentMonth, currentWeek); closeExportModal(); return; }
+            if (val === 'attendance-pick') {
                 var y = parseInt(document.getElementById('exportYear').value, 10) || currentYear;
                 var m = parseInt(document.getElementById('exportMonth').value, 10) || currentMonth;
                 var suns = getSundaysInMonth(y, m);
                 var w = parseInt(document.getElementById('exportWeek').value, 10) || 1;
                 if (w < 1 || w > suns.length) w = 1;
-                exportAttendanceCSV(y, m, w);
-                closeExportModal();
+                exportAttendanceCSV(y, m, w); closeExportModal(); return;
+            }
+            if (val === 'quarter') {
+                var yq = parseInt(document.getElementById('exportQYear').value, 10) || currentYear;
+                var q = parseInt(document.getElementById('exportQuarter').value, 10) || 1;
+                var startMonth = (q - 1) * 3 + 1;
+                exportRangeReport(yq, startMonth, startMonth + 2, yq + '년 ' + q + '분기');
+                closeExportModal(); return;
+            }
+            if (val === 'half') {
+                var yh = parseInt(document.getElementById('exportHYear').value, 10) || currentYear;
+                var h = parseInt(document.getElementById('exportHalf').value, 10) || 1;
+                var startM = h === 1 ? 1 : 7;
+                var endM = h === 1 ? 6 : 12;
+                var label = h === 1 ? '상반기' : '하반기';
+                exportRangeReport(yh, startM, endM, yh + '년 ' + label);
+                closeExportModal(); return;
+            }
+            if (val === 'yearly') {
+                var yy = parseInt(document.getElementById('exportYYear').value, 10) || currentYear;
+                exportRangeReport(yy, 1, 12, yy + '년 연간');
+                closeExportModal(); return;
+            }
+            if (val === 'pdf-quarter') {
+                var pyq = parseInt(document.getElementById('exportPdfQYear').value, 10) || currentYear;
+                var pq = parseInt(document.getElementById('exportPdfQuarter').value, 10) || 1;
+                var pStartMonth = (pq - 1) * 3 + 1;
+                generatePdfReport(pyq, pStartMonth, pStartMonth + 2, pyq + '년 ' + pq + '분기');
+                closeExportModal(); return;
+            }
+            if (val === 'pdf-half') {
+                var pyh = parseInt(document.getElementById('exportPdfHYear').value, 10) || currentYear;
+                var ph = parseInt(document.getElementById('exportPdfHalf').value, 10) || 1;
+                generatePdfReport(pyh, ph === 1 ? 1 : 7, ph === 1 ? 6 : 12, pyh + '년 ' + (ph === 1 ? '상반기' : '하반기'));
+                closeExportModal(); return;
+            }
+            if (val === 'pdf-yearly') {
+                var pyy = parseInt(document.getElementById('exportPdfYYear').value, 10) || currentYear;
+                generatePdfReport(pyy, 1, 12, pyy + '년 연간');
+                closeExportModal(); return;
+            }
+        }
+
+        async function exportRangeReport(year, startMonth, endMonth, title) {
+            if (typeof ExcelJS === 'undefined') {
+                showToast('엑셀 라이브러리 로딩 실패. 새로고침 후 다시 시도해주세요.', 'error');
+                return;
+            }
+            var wb = new ExcelJS.Workbook();
+            wb.creator = '부천중앙침례교회 주일학교';
+            wb.created = new Date();
+
+            var COLORS = {
+                navy: '1B3A5C',
+                gold: 'D4A843',
+                lightNavy: '2C5F8A',
+                white: 'FFFFFF',
+                lightGray: 'F5F7FA',
+                lightBlue: 'E8F0FE',
+                present: '27AE60',
+                late: 'F39C12',
+                absent: 'E74C3C',
+                border: 'B0BEC5',
+                summaryBg: 'FFF8E1',
+                titleBg: '0D253F'
+            };
+
+            var allSundays = [];
+            for (var m = startMonth; m <= endMonth; m++) {
+                var suns = getSundaysInMonth(year, m);
+                suns.forEach(function(d, i) {
+                    allSundays.push({
+                        date: d,
+                        month: m,
+                        weekKey: year + '-' + m + '-' + (i + 1),
+                        label: (d.getMonth() + 1) + '/' + d.getDate()
+                    });
+                });
+            }
+
+            var deptOrder = ['grade1','grade2','grade3','grade4','grade5','grade6'];
+            var deptName = { grade1:'1학년', grade2:'2학년', grade3:'3학년', grade4:'4학년', grade5:'5학년', grade6:'6학년' };
+
+            var ws1 = wb.addWorksheet('📊 요약', {
+                properties: { tabColor: { argb: COLORS.gold } },
+                pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+            });
+
+            ws1.mergeCells('A1:H1');
+            var titleCell = ws1.getCell('A1');
+            titleCell.value = '부천중앙침례교회 주일학교';
+            titleCell.font = { name: '맑은 고딕', size: 18, bold: true, color: { argb: COLORS.white } };
+            titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.titleBg } };
+            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            ws1.getRow(1).height = 45;
+
+            ws1.mergeCells('A2:H2');
+            var subTitle = ws1.getCell('A2');
+            subTitle.value = title + ' 출석 보고서';
+            subTitle.font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: COLORS.navy } };
+            subTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+            ws1.getRow(2).height = 30;
+
+            ws1.mergeCells('A3:H3');
+            var dateInfo = ws1.getCell('A3');
+            dateInfo.value = '생성일: ' + new Date().toLocaleDateString('ko-KR') + '  |  총 ' + allSundays.length + '주';
+            dateInfo.font = { name: '맑은 고딕', size: 10, color: { argb: '666666' } };
+            dateInfo.alignment = { horizontal: 'center', vertical: 'middle' };
+            ws1.getRow(3).height = 22;
+
+            var summaryHeaders = ['학년부', '전체 인원', '출석', '결석', '지각', '출석률', '개근자', '장기결석'];
+            var headerRow = ws1.getRow(5);
+            summaryHeaders.forEach(function(h, i) {
+                var cell = headerRow.getCell(i + 1);
+                cell.value = h;
+                cell.font = { name: '맑은 고딕', size: 11, bold: true, color: { argb: COLORS.white } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.navy } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: COLORS.border } },
+                    bottom: { style: 'thin', color: { argb: COLORS.border } },
+                    left: { style: 'thin', color: { argb: COLORS.border } },
+                    right: { style: 'thin', color: { argb: COLORS.border } }
+                };
+            });
+            headerRow.height = 28;
+
+            var grandTotal = 0, grandPresent = 0, grandLate = 0, grandAbsent = 0;
+            var allPerfect = [], allLongAbsent = [];
+            var summaryRowIdx = 6;
+
+            deptOrder.forEach(function(dept, dIdx) {
+                var deptStudents = students.filter(function(s) { return getDept(s.grade) === dept; });
+                var total = deptStudents.length;
+                var presentCnt = 0, lateCnt = 0, absentCnt = 0;
+                var perfect = [], longAbsent = [];
+
+                deptStudents.forEach(function(s) {
+                    var sPresent = 0, sTotal = 0;
+                    allSundays.forEach(function(sun) {
+                        var ak = sun.weekKey + '-' + s.id;
+                        var st = attendance[ak];
+                        sTotal++;
+                        if (st === 'present') { presentCnt++; sPresent++; }
+                        else if (st === 'late') { lateCnt++; sPresent++; }
+                        else { absentCnt++; }
+                    });
+                    if (sPresent === sTotal && sTotal > 0) perfect.push(s.name);
+                    if (sTotal > 0 && sPresent === 0) longAbsent.push(s.name);
+                });
+
+                grandTotal += total; grandPresent += presentCnt; grandLate += lateCnt; grandAbsent += absentCnt;
+                allPerfect = allPerfect.concat(perfect);
+                allLongAbsent = allLongAbsent.concat(longAbsent);
+
+                var totalPossible = total * allSundays.length;
+                var rate = totalPossible > 0 ? Math.round((presentCnt + lateCnt) / totalPossible * 100) : 0;
+
+                var row = ws1.getRow(summaryRowIdx);
+                var vals = [deptName[dept], total + '명', presentCnt + '회', absentCnt + '회', lateCnt + '회', rate + '%', perfect.length + '명', longAbsent.length + '명'];
+                vals.forEach(function(v, i) {
+                    var cell = row.getCell(i + 1);
+                    cell.value = v;
+                    cell.font = { name: '맑은 고딕', size: 10 };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: COLORS.border } },
+                        bottom: { style: 'thin', color: { argb: COLORS.border } },
+                        left: { style: 'thin', color: { argb: COLORS.border } },
+                        right: { style: 'thin', color: { argb: COLORS.border } }
+                    };
+                    if (dIdx % 2 === 1) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightGray } };
+                    }
+                });
+                var rateCell = row.getCell(6);
+                if (rate >= 80) rateCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.present } };
+                else if (rate >= 50) rateCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.late } };
+                else rateCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.absent } };
+
+            row.height = 24;
+            summaryRowIdx++;
+            });
+
+            var totalPossible = grandTotal * allSundays.length;
+            var grandRate = totalPossible > 0 ? Math.round((grandPresent + grandLate) / totalPossible * 100) : 0;
+            var totalRow = ws1.getRow(summaryRowIdx);
+            var totalVals = ['전 체', grandTotal + '명', grandPresent + '회', grandAbsent + '회', grandLate + '회', grandRate + '%', allPerfect.length + '명', allLongAbsent.length + '명'];
+            totalVals.forEach(function(v, i) {
+                var cell = totalRow.getCell(i + 1);
+                cell.value = v;
+                cell.font = { name: '맑은 고딕', size: 11, bold: true, color: { argb: COLORS.white } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightNavy } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = {
+                    top: { style: 'medium', color: { argb: COLORS.navy } },
+                    bottom: { style: 'medium', color: { argb: COLORS.navy } },
+                    left: { style: 'thin', color: { argb: COLORS.border } },
+                    right: { style: 'thin', color: { argb: COLORS.border } }
+                };
+            });
+            totalRow.height = 28;
+            summaryRowIdx += 2;
+
+            if (allPerfect.length > 0) {
+                ws1.mergeCells('A' + summaryRowIdx + ':H' + summaryRowIdx);
+                var pCell = ws1.getCell('A' + summaryRowIdx);
+                pCell.value = '🏆 개근자: ' + allPerfect.join(', ');
+                pCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.present } };
+                pCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.summaryBg } };
+                pCell.alignment = { wrapText: true };
+                ws1.getRow(summaryRowIdx).height = 24;
+                summaryRowIdx++;
+            }
+            if (allLongAbsent.length > 0) {
+                ws1.mergeCells('A' + summaryRowIdx + ':H' + summaryRowIdx);
+                var aCell = ws1.getCell('A' + summaryRowIdx);
+                aCell.value = '⚠️ 장기결석: ' + allLongAbsent.join(', ');
+                aCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.absent } };
+                aCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEBEE' } };
+                aCell.alignment = { wrapText: true };
+                ws1.getRow(summaryRowIdx).height = 24;
+            }
+
+            ws1.columns = [
+                { width: 14 }, { width: 12 }, { width: 10 }, { width: 10 },
+                { width: 10 }, { width: 12 }, { width: 10 }, { width: 12 }
+            ];
+
+            var ws2 = wb.addWorksheet('📋 상세 출석부', {
+                properties: { tabColor: { argb: COLORS.navy } },
+                pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+            });
+
+            var detailColCount = 4 + allSundays.length + 2;
+
+            ws2.mergeCells(1, 1, 1, detailColCount);
+            var dTitle = ws2.getCell(1, 1);
+            dTitle.value = '부천중앙침례교회 주일학교 — ' + title + ' 상세 출석부';
+            dTitle.font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: COLORS.white } };
+            dTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.titleBg } };
+            dTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+            ws2.getRow(1).height = 38;
+
+            var monthStartCols = {};
+            allSundays.forEach(function(sun, idx) {
+                var colIdx = 5 + idx;
+                if (!monthStartCols[sun.month]) monthStartCols[sun.month] = { start: colIdx, end: colIdx };
+                else monthStartCols[sun.month].end = colIdx;
+            });
+
+            var monthColors = ['E3F2FD','FFF3E0','E8F5E9','F3E5F5','FFF8E1','FCE4EC','E0F7FA','FBE9E7','F1F8E9','EDE7F6','E8EAF6','EFEBE9'];
+            Object.keys(monthStartCols).forEach(function(mStr) {
+                var mm = parseInt(mStr);
+                var range = monthStartCols[mm];
+                if (range.start !== range.end) ws2.mergeCells(2, range.start, 2, range.end);
+                var mCell = ws2.getCell(2, range.start);
+                mCell.value = mm + '월';
+                mCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.navy } };
+                mCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: monthColors[(mm - 1) % 12] } };
+                mCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                mCell.border = {
+                    bottom: { style: 'thin', color: { argb: COLORS.border } },
+                    left: { style: 'thin', color: { argb: COLORS.border } },
+                    right: { style: 'thin', color: { argb: COLORS.border } }
+                };
+            });
+
+            ['번호','이름','학년','담당'].forEach(function(h, i) {
+                ws2.mergeCells(2, i + 1, 3, i + 1);
+                var cell = ws2.getCell(2, i + 1);
+                cell.value = h;
+                cell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.white } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.navy } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = { top:{style:'thin',color:{argb:COLORS.border}}, bottom:{style:'thin',color:{argb:COLORS.border}}, left:{style:'thin',color:{argb:COLORS.border}}, right:{style:'thin',color:{argb:COLORS.border}} };
+            });
+
+            ws2.mergeCells(2, detailColCount - 1, 3, detailColCount - 1);
+            var cntHeader = ws2.getCell(2, detailColCount - 1);
+            cntHeader.value = '출석';
+            cntHeader.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.white } };
+            cntHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.navy } };
+            cntHeader.alignment = { horizontal: 'center', vertical: 'middle' };
+            cntHeader.border = { top:{style:'thin',color:{argb:COLORS.border}}, bottom:{style:'thin',color:{argb:COLORS.border}}, left:{style:'thin',color:{argb:COLORS.border}}, right:{style:'thin',color:{argb:COLORS.border}} };
+
+            ws2.mergeCells(2, detailColCount, 3, detailColCount);
+            var rateHeader = ws2.getCell(2, detailColCount);
+            rateHeader.value = '출석률';
+            rateHeader.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.white } };
+            rateHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.navy } };
+            rateHeader.alignment = { horizontal: 'center', vertical: 'middle' };
+            rateHeader.border = { top:{style:'thin',color:{argb:COLORS.border}}, bottom:{style:'thin',color:{argb:COLORS.border}}, left:{style:'thin',color:{argb:COLORS.border}}, right:{style:'thin',color:{argb:COLORS.border}} };
+
+            ws2.getRow(2).height = 22;
+
+            allSundays.forEach(function(sun, idx) {
+                var cell = ws2.getCell(3, 5 + idx);
+                cell.value = sun.label;
+                cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: COLORS.navy } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightBlue } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = { top:{style:'thin',color:{argb:COLORS.border}}, bottom:{style:'thin',color:{argb:COLORS.border}}, left:{style:'thin',color:{argb:COLORS.border}}, right:{style:'thin',color:{argb:COLORS.border}} };
+            });
+            ws2.getRow(3).height = 22;
+
+            var dataRowIdx = 4;
+            var num = 1;
+
+            deptOrder.forEach(function(dept, dIdx) {
+                var deptStudents = students.filter(function(s) { return getDept(s.grade) === dept; })
+                    .sort(function(a, b) { return getGradeNum(a.grade) - getGradeNum(b.grade); });
+
+                ws2.mergeCells(dataRowIdx, 1, dataRowIdx, detailColCount);
+                var deptCell = ws2.getCell(dataRowIdx, 1);
+                deptCell.value = '  ▸ ' + deptName[dept] + ' (' + deptStudents.length + '명)';
+                deptCell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.white } };
+                deptCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightNavy } };
+                deptCell.alignment = { vertical: 'middle' };
+                ws2.getRow(dataRowIdx).height = 24;
+                dataRowIdx++;
+
+                deptStudents.forEach(function(s, sIdx) {
+                    var row = ws2.getRow(dataRowIdx);
+                    var presentCnt = 0;
+
+                    var baseVals = [num, s.name, s.grade, s.owner || ''];
+                    baseVals.forEach(function(v, i) {
+                        var cell = row.getCell(i + 1);
+                        cell.value = v;
+                        cell.font = { name: '맑은 고딕', size: 9 };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                        cell.border = { top:{style:'hair',color:{argb:COLORS.border}}, bottom:{style:'hair',color:{argb:COLORS.border}}, left:{style:'hair',color:{argb:COLORS.border}}, right:{style:'hair',color:{argb:COLORS.border}} };
+                        if (sIdx % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightGray } };
+                    });
+
+                    allSundays.forEach(function(sun, idx) {
+                        var ak = sun.weekKey + '-' + s.id;
+                        var st = attendance[ak] || 'absent';
+                        var cell = row.getCell(5 + idx);
+                        if (st === 'present') {
+                            cell.value = '✓';
+                            cell.font = { name: '맑은 고딕', size: 11, bold: true, color: { argb: COLORS.present } };
+                            presentCnt++;
+                        } else if (st === 'late') {
+                            cell.value = '△';
+                            cell.font = { name: '맑은 고딕', size: 11, bold: true, color: { argb: COLORS.late } };
+                            presentCnt++;
+                        } else {
+                            cell.value = '✗';
+                            cell.font = { name: '맑은 고딕', size: 11, color: { argb: COLORS.absent } };
+                        }
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                        cell.border = { top:{style:'hair',color:{argb:COLORS.border}}, bottom:{style:'hair',color:{argb:COLORS.border}}, left:{style:'hair',color:{argb:COLORS.border}}, right:{style:'hair',color:{argb:COLORS.border}} };
+                        if (sIdx % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightGray } };
+                    });
+
+                    var cntCell = row.getCell(detailColCount - 1);
+                    cntCell.value = presentCnt + '/' + allSundays.length;
+                    cntCell.font = { name: '맑은 고딕', size: 9, bold: true };
+                    cntCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    cntCell.border = { top:{style:'hair',color:{argb:COLORS.border}}, bottom:{style:'hair',color:{argb:COLORS.border}}, left:{style:'hair',color:{argb:COLORS.border}}, right:{style:'hair',color:{argb:COLORS.border}} };
+
+                    var rateVal = allSundays.length > 0 ? Math.round(presentCnt / allSundays.length * 100) : 0;
+                    var rateCell = row.getCell(detailColCount);
+                    rateCell.value = rateVal + '%';
+                    rateCell.font = { name: '맑은 고딕', size: 9, bold: true };
+                    if (rateVal >= 80) rateCell.font.color = { argb: COLORS.present };
+                    else if (rateVal >= 50) rateCell.font.color = { argb: COLORS.late };
+                    else rateCell.font.color = { argb: COLORS.absent };
+                    rateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    rateCell.border = { top:{style:'hair',color:{argb:COLORS.border}}, bottom:{style:'hair',color:{argb:COLORS.border}}, left:{style:'hair',color:{argb:COLORS.border}}, right:{style:'hair',color:{argb:COLORS.border}} };
+
+                    if (sIdx % 2 === 1) {
+                        cntCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightGray } };
+                        rateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightGray } };
+                    }
+
+                    row.height = 22;
+                    num++;
+                    dataRowIdx++;
+                });
+            });
+
+            ws2.getColumn(1).width = 6;
+            ws2.getColumn(2).width = 10;
+            ws2.getColumn(3).width = 8;
+            ws2.getColumn(4).width = 10;
+            for (var ci2 = 0; ci2 < allSundays.length; ci2++) ws2.getColumn(5 + ci2).width = 6;
+            ws2.getColumn(detailColCount - 1).width = 9;
+            ws2.getColumn(detailColCount).width = 9;
+
+            ws2.views = [{ state: 'frozen', xSplit: 4, ySplit: 3 }];
+
+            for (var mm2 = startMonth; mm2 <= endMonth; mm2++) {
+                var monthlySundays = allSundays.filter(function(s) { return s.month === mm2; });
+                if (monthlySundays.length === 0) continue;
+
+                var wsM = wb.addWorksheet(mm2 + '월', {
+                    properties: { tabColor: { argb: monthColors[(mm2 - 1) % 12] } },
+                    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+                });
+
+                var mColCount = 4 + monthlySundays.length + 2;
+
+                wsM.mergeCells(1, 1, 1, mColCount);
+                var mt = wsM.getCell(1, 1);
+                mt.value = year + '년 ' + mm2 + '월 출석부';
+                mt.font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: COLORS.white } };
+                mt.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.navy } };
+                mt.alignment = { horizontal: 'center', vertical: 'middle' };
+                wsM.getRow(1).height = 35;
+
+                var mHeaders = ['번호', '이름', '학년', '담당'];
+                monthlySundays.forEach(function(su) { mHeaders.push(su.label); });
+                mHeaders.push('출석', '출석률');
+
+                var mhRow = wsM.getRow(2);
+                mHeaders.forEach(function(h, i) {
+                    var cell = mhRow.getCell(i + 1);
+                    cell.value = h;
+                    cell.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.white } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.navy } };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    cell.border = { top:{style:'thin',color:{argb:COLORS.border}}, bottom:{style:'thin',color:{argb:COLORS.border}}, left:{style:'thin',color:{argb:COLORS.border}}, right:{style:'thin',color:{argb:COLORS.border}} };
+                });
+                mhRow.height = 26;
+
+                var mRowIdx = 3, mNum = 1;
+                deptOrder.forEach(function(dept, dIdx) {
+                    var deptStudents = students.filter(function(s) { return getDept(s.grade) === dept; })
+                        .sort(function(a, b) { return getGradeNum(a.grade) - getGradeNum(b.grade); });
+                    if (deptStudents.length === 0) return;
+
+                    wsM.mergeCells(mRowIdx, 1, mRowIdx, mColCount);
+                    var dc = wsM.getCell(mRowIdx, 1);
+                    dc.value = '  ▸ ' + deptName[dept];
+                    dc.font = { name: '맑은 고딕', size: 10, bold: true, color: { argb: COLORS.white } };
+                    dc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightNavy } };
+                    wsM.getRow(mRowIdx).height = 22;
+                    mRowIdx++;
+
+                    deptStudents.forEach(function(s, sIdx) {
+                        var row = wsM.getRow(mRowIdx);
+                        var pCnt = 0;
+                        row.getCell(1).value = mNum;
+                        row.getCell(2).value = s.name;
+                        row.getCell(3).value = s.grade;
+                        row.getCell(4).value = s.owner || '';
+
+                        monthlySundays.forEach(function(sun, idx) {
+                            var ak = sun.weekKey + '-' + s.id;
+                            var st = attendance[ak] || 'absent';
+                            var cell = row.getCell(5 + idx);
+                            if (st === 'present') { cell.value = '✓'; cell.font = { name:'맑은 고딕', size:11, bold:true, color:{argb:COLORS.present} }; pCnt++; }
+                            else if (st === 'late') { cell.value = '△'; cell.font = { name:'맑은 고딕', size:11, bold:true, color:{argb:COLORS.late} }; pCnt++; }
+                            else { cell.value = '✗'; cell.font = { name:'맑은 고딕', size:11, color:{argb:COLORS.absent} }; }
+                            cell.alignment = { horizontal:'center', vertical:'middle' };
+                            cell.border = { top:{style:'hair',color:{argb:COLORS.border}}, bottom:{style:'hair',color:{argb:COLORS.border}}, left:{style:'hair',color:{argb:COLORS.border}}, right:{style:'hair',color:{argb:COLORS.border}} };
+                        });
+
+                        row.getCell(mColCount - 1).value = pCnt + '/' + monthlySundays.length;
+                        var mRate = monthlySundays.length > 0 ? Math.round(pCnt / monthlySundays.length * 100) : 0;
+                        row.getCell(mColCount).value = mRate + '%';
+
+                        for (var ci3 = 1; ci3 <= mColCount; ci3++) {
+                            var c = row.getCell(ci3);
+                            if (!c.font) c.font = { name: '맑은 고딕', size: 9 };
+                            c.alignment = { horizontal: 'center', vertical: 'middle' };
+                            c.border = { top:{style:'hair',color:{argb:COLORS.border}}, bottom:{style:'hair',color:{argb:COLORS.border}}, left:{style:'hair',color:{argb:COLORS.border}}, right:{style:'hair',color:{argb:COLORS.border}} };
+                            if (sIdx % 2 === 1) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightGray } };
+                        }
+
+                        row.height = 22;
+                        mNum++;
+                        mRowIdx++;
+                    });
+                });
+
+                wsM.getColumn(1).width = 6;
+                wsM.getColumn(2).width = 10;
+                wsM.getColumn(3).width = 8;
+                wsM.getColumn(4).width = 10;
+                for (var ci4 = 0; ci4 < monthlySundays.length; ci4++) wsM.getColumn(5 + ci4).width = 6;
+                wsM.getColumn(mColCount - 1).width = 9;
+                wsM.getColumn(mColCount).width = 9;
+
+                wsM.views = [{ state: 'frozen', xSplit: 4, ySplit: 2 }];
+            }
+
+            var buffer = await wb.xlsx.writeBuffer();
+            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = '부천중앙침례교회_주일학교_' + title.replace(/ /g, '_') + '_출석보고서.xlsx';
+            link.click();
+            showToast('엑셀 다운로드 완료!', 'success');
+        }
+
+        async function generatePdfReport(year, startMonth, endMonth, title) {
+            if (typeof html2pdf === 'undefined') {
+                showToast('PDF 라이브러리 로딩 실패. 새로고침 후 다시 시도해주세요.', 'error');
+                return;
+            }
+
+            showToast('PDF 생성 중...', 'success');
+
+            var allSundays = [];
+            for (var m = startMonth; m <= endMonth; m++) {
+                var suns = getSundaysInMonth(year, m);
+                suns.forEach(function(d, i) {
+                    allSundays.push({
+                        date: d,
+                        month: m,
+                        weekKey: year + '-' + m + '-' + (i + 1),
+                        label: (d.getMonth() + 1) + '/' + d.getDate()
+                    });
+                });
+            }
+
+            var deptOrder = ['grade1','grade2','grade3','grade4','grade5','grade6'];
+            var deptName = { grade1:'1학년', grade2:'2학년', grade3:'3학년', grade4:'4학년', grade5:'5학년', grade6:'6학년' };
+
+            var deptStats = {};
+            var grandTotal = 0, grandPresent = 0, grandLate = 0, grandAbsent = 0;
+            var allPerfect = [], allLongAbsent = [];
+
+            deptOrder.forEach(function(dept) {
+                var deptStudents = students.filter(function(s) { return getDept(s.grade) === dept; });
+                var total = deptStudents.length;
+                var presentCnt = 0, lateCnt = 0, absentCnt = 0;
+                var perfect = [], longAbsent = [];
+
+                deptStudents.forEach(function(s) {
+                    var sPresent = 0;
+                    allSundays.forEach(function(sun) {
+                        var ak = sun.weekKey + '-' + s.id;
+                        var st = attendance[ak];
+                        if (st === 'present') { presentCnt++; sPresent++; }
+                        else if (st === 'late') { lateCnt++; sPresent++; }
+                        else { absentCnt++; }
+                    });
+                    if (sPresent === allSundays.length && allSundays.length > 0) perfect.push(s.name);
+                    if (sPresent === 0 && allSundays.length > 0) longAbsent.push(s.name);
+                });
+
+                deptStats[dept] = { total: total, present: presentCnt, late: lateCnt, absent: absentCnt, perfect: perfect, longAbsent: longAbsent };
+                grandTotal += total; grandPresent += presentCnt; grandLate += lateCnt; grandAbsent += absentCnt;
+                allPerfect = allPerfect.concat(perfect);
+                allLongAbsent = allLongAbsent.concat(longAbsent);
+            });
+
+            var grandPossible = grandTotal * allSundays.length;
+            var grandRate = grandPossible > 0 ? Math.round((grandPresent + grandLate) / grandPossible * 100) : 0;
+
+            var monthlyRates = [];
+            for (var mm = startMonth; mm <= endMonth; mm++) {
+                var mSuns = allSundays.filter(function(s) { return s.month === mm; });
+                var mPossible = students.length * mSuns.length;
+                var mPresent = 0;
+                students.forEach(function(s) {
+                    mSuns.forEach(function(sun) {
+                        var ak = sun.weekKey + '-' + s.id;
+                        var st = attendance[ak];
+                        if (st === 'present' || st === 'late') mPresent++;
+                    });
+                });
+                monthlyRates.push({ month: mm, rate: mPossible > 0 ? Math.round(mPresent / mPossible * 100) : 0 });
+            }
+
+            var weeklyPresent = [];
+            allSundays.forEach(function(sun) {
+                var cnt = 0;
+                students.forEach(function(s) {
+                    var ak = sun.weekKey + '-' + s.id;
+                    var st = attendance[ak];
+                    if (st === 'present' || st === 'late') cnt++;
+                });
+                weeklyPresent.push({ label: sun.label, count: cnt });
+            });
+            var maxWeekly = Math.max.apply(null, weeklyPresent.map(function(w) { return w.count; })) || 1;
+
+            var periodLabel = startMonth + '월 ~ ' + endMonth + '월';
+            var today = new Date();
+            var todayStr = today.getFullYear() + '년 ' + (today.getMonth()+1) + '월 ' + today.getDate() + '일';
+
+            var html = '';
+            html += '<div id="pdfReportContent" style="font-family:\'Malgun Gothic\',\'맑은 고딕\',sans-serif; color:#1a1a1a; width:210mm; padding:15mm 15mm 10mm 15mm; box-sizing:border-box;">';
+
+            html += '<div style="text-align:center; margin-bottom:30px; padding-bottom:25px; border-bottom:3px double #1E3A5F;">';
+            html += '<div style="font-size:11px; color:#666; letter-spacing:3px; margin-bottom:8px;">BUCHEON CENTRAL BAPTIST CHURCH</div>';
+            html += '<div style="font-size:28px; font-weight:800; color:#1E3A5F; margin-bottom:6px;">부천중앙침례교회</div>';
+            html += '<div style="font-size:18px; font-weight:700; color:#2563EB; margin-bottom:15px;">주일학교 초등부</div>';
+            html += '<div style="display:inline-block; background:linear-gradient(135deg,#1E3A5F,#2563EB); color:#fff; padding:10px 30px; border-radius:25px; font-size:16px; font-weight:700;">' + title + ' 출석 보고서</div>';
+            html += '<div style="margin-top:12px; font-size:12px; color:#888;">보고 기간: ' + year + '년 ' + periodLabel + ' (총 ' + allSundays.length + '주) &nbsp;|&nbsp; 작성일: ' + todayStr + '</div>';
+            html += '</div>';
+
+            html += '<div style="display:flex; gap:12px; margin-bottom:25px;">';
+            var cards = [
+                { label: '전체 인원', value: grandTotal + '명', icon: '👥', color: '#2563EB', bg: '#EFF6FF' },
+                { label: '총 출석률', value: grandRate + '%', icon: '📊', color: grandRate >= 60 ? '#059669' : grandRate >= 40 ? '#D97706' : '#DC2626', bg: grandRate >= 60 ? '#ECFDF5' : grandRate >= 40 ? '#FFFBEB' : '#FEF2F2' },
+                { label: '개근자', value: allPerfect.length + '명', icon: '🏆', color: '#059669', bg: '#ECFDF5' },
+                { label: '장기결석', value: allLongAbsent.length + '명', icon: '⚠️', color: '#DC2626', bg: '#FEF2F2' }
+            ];
+            cards.forEach(function(c) {
+                html += '<div style="flex:1; background:' + c.bg + '; border-radius:12px; padding:15px; text-align:center; border:1px solid ' + c.color + '22;">';
+                html += '<div style="font-size:22px; margin-bottom:4px;">' + c.icon + '</div>';
+                html += '<div style="font-size:24px; font-weight:800; color:' + c.color + ';">' + c.value + '</div>';
+                html += '<div style="font-size:11px; color:#666; margin-top:2px;">' + c.label + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+
+            html += '<div style="background:#F8FAFC; border-radius:12px; padding:18px; margin-bottom:25px; border:1px solid #E2E8F0;">';
+            html += '<div style="font-size:14px; font-weight:700; color:#1E3A5F; margin-bottom:12px;">📈 주차별 출석 인원 추이</div>';
+            html += '<div style="display:flex; align-items:flex-end; gap:3px; height:100px;">';
+            weeklyPresent.forEach(function(w) {
+                var pct = maxWeekly > 0 ? Math.round(w.count / maxWeekly * 100) : 0;
+                var barColor = w.count >= grandTotal * 0.6 ? '#2563EB' : w.count >= grandTotal * 0.3 ? '#F59E0B' : '#EF4444';
+                html += '<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;">';
+                html += '<span style="font-size:8px; color:#666; font-weight:600;">' + w.count + '</span>';
+                html += '<div style="width:100%; height:' + Math.max(pct, 5) + '%; background:' + barColor + '; border-radius:3px 3px 0 0; min-height:3px;"></div>';
+                html += '<span style="font-size:7px; color:#999; writing-mode:vertical-lr; transform:rotate(180deg); height:28px; overflow:hidden;">' + w.label + '</span>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+
+            if (monthlyRates.length > 1) {
+                html += '<div style="display:flex; gap:10px; margin-bottom:25px;">';
+                monthlyRates.forEach(function(mr) {
+                    var barColor = mr.rate >= 60 ? '#059669' : mr.rate >= 40 ? '#D97706' : '#DC2626';
+                    var barBg = mr.rate >= 60 ? '#ECFDF5' : mr.rate >= 40 ? '#FFFBEB' : '#FEF2F2';
+                    html += '<div style="flex:1; background:' + barBg + '; border-radius:10px; padding:14px; text-align:center; border:1px solid ' + barColor + '22;">';
+                    html += '<div style="font-size:13px; font-weight:700; color:#1E3A5F; margin-bottom:8px;">' + mr.month + '월</div>';
+                    html += '<div style="font-size:28px; font-weight:800; color:' + barColor + ';">' + mr.rate + '%</div>';
+                    html += '<div style="margin-top:8px; background:#E2E8F0; border-radius:4px; height:8px; overflow:hidden;">';
+                    html += '<div style="height:100%; width:' + mr.rate + '%; background:' + barColor + '; border-radius:4px;"></div>';
+                    html += '</div></div>';
+                });
+                html += '</div>';
+            }
+
+            html += '<div style="margin-bottom:25px;">';
+            html += '<div style="font-size:14px; font-weight:700; color:#1E3A5F; margin-bottom:10px;">📋 학년부별 출석 현황</div>';
+            html += '<table style="width:100%; border-collapse:collapse; font-size:11px;">';
+            html += '<thead><tr style="background:#1E3A5F; color:#fff;">';
+            ['학년부','인원','출석','결석','지각','출석률','개근','장기결석'].forEach(function(h) {
+                html += '<th style="padding:10px 8px; text-align:center; font-weight:600;">' + h + '</th>';
+            });
+            html += '</tr></thead><tbody>';
+
+            deptOrder.forEach(function(dept, idx) {
+                var st = deptStats[dept];
+                if (!st || st.total === 0) return;
+                var possible = st.total * allSundays.length;
+                var rate = possible > 0 ? Math.round((st.present + st.late) / possible * 100) : 0;
+                var rateColor = rate >= 60 ? '#059669' : rate >= 40 ? '#D97706' : '#DC2626';
+                var bg = idx % 2 === 0 ? '#fff' : '#F8FAFC';
+
+                html += '<tr style="background:' + bg + '; border-bottom:1px solid #E2E8F0;">';
+                html += '<td style="padding:9px 8px; text-align:center; font-weight:600;">' + deptName[dept] + '</td>';
+                html += '<td style="padding:9px 8px; text-align:center;">' + st.total + '명</td>';
+                html += '<td style="padding:9px 8px; text-align:center; color:#059669; font-weight:600;">' + st.present + '회</td>';
+                html += '<td style="padding:9px 8px; text-align:center; color:#DC2626;">' + st.absent + '회</td>';
+                html += '<td style="padding:9px 8px; text-align:center; color:#D97706;">' + st.late + '회</td>';
+                html += '<td style="padding:9px 8px; text-align:center;"><span style="background:' + rateColor + '; color:#fff; padding:3px 10px; border-radius:12px; font-weight:700; font-size:11px;">' + rate + '%</span></td>';
+                html += '<td style="padding:9px 8px; text-align:center;">' + st.perfect.length + '명</td>';
+                html += '<td style="padding:9px 8px; text-align:center;">' + st.longAbsent.length + '명</td>';
+                html += '</tr>';
+            });
+
+            html += '<tr style="background:#1E3A5F; color:#fff; font-weight:700;">';
+            html += '<td style="padding:10px 8px; text-align:center;">합 계</td>';
+            html += '<td style="padding:10px 8px; text-align:center;">' + grandTotal + '명</td>';
+            html += '<td style="padding:10px 8px; text-align:center;">' + grandPresent + '회</td>';
+            html += '<td style="padding:10px 8px; text-align:center;">' + grandAbsent + '회</td>';
+            html += '<td style="padding:10px 8px; text-align:center;">' + grandLate + '회</td>';
+            html += '<td style="padding:10px 8px; text-align:center;"><span style="background:#fff; color:#1E3A5F; padding:3px 10px; border-radius:12px; font-weight:700;">' + grandRate + '%</span></td>';
+            html += '<td style="padding:10px 8px; text-align:center;">' + allPerfect.length + '명</td>';
+            html += '<td style="padding:10px 8px; text-align:center;">' + allLongAbsent.length + '명</td>';
+            html += '</tr>';
+            html += '</tbody></table></div>';
+
+            if (allPerfect.length > 0 || allLongAbsent.length > 0) {
+                html += '<div style="display:flex; gap:12px; margin-bottom:25px;">';
+                if (allPerfect.length > 0) {
+                    html += '<div style="flex:1; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:12px; padding:14px;">';
+                    html += '<div style="font-size:13px; font-weight:700; color:#059669; margin-bottom:8px;">🏆 개근자 명단 (' + allPerfect.length + '명)</div>';
+                    html += '<div style="font-size:12px; color:#065F46; line-height:1.8;">';
+                    allPerfect.forEach(function(name) {
+                        html += '<span style="display:inline-block; background:#fff; padding:2px 10px; border-radius:15px; margin:2px 3px; border:1px solid #A7F3D0;">' + name + '</span>';
+                    });
+                    html += '</div></div>';
+                }
+                if (allLongAbsent.length > 0) {
+                    html += '<div style="flex:1; background:#FEF2F2; border:1px solid #FECACA; border-radius:12px; padding:14px;">';
+                    html += '<div style="font-size:13px; font-weight:700; color:#DC2626; margin-bottom:8px;">⚠️ 장기결석자 명단 (' + allLongAbsent.length + '명)</div>';
+                    html += '<div style="font-size:12px; color:#991B1B; line-height:1.8;">';
+                    allLongAbsent.forEach(function(name) {
+                        html += '<span style="display:inline-block; background:#fff; padding:2px 10px; border-radius:15px; margin:2px 3px; border:1px solid #FECACA;">' + name + '</span>';
+                    });
+                    html += '</div></div>';
+                }
+                html += '</div>';
+            }
+
+            html += '<div style="page-break-before:always;"></div>';
+            html += '<div style="font-size:16px; font-weight:800; color:#1E3A5F; margin-bottom:5px; padding-top:5px;">📋 학생별 상세 출석 현황</div>';
+            html += '<div style="font-size:11px; color:#888; margin-bottom:15px;">' + year + '년 ' + periodLabel + ' (총 ' + allSundays.length + '주)</div>';
+
+            for (var mm2 = startMonth; mm2 <= endMonth; mm2++) {
+                var mSuns2 = allSundays.filter(function(s) { return s.month === mm2; });
+                if (mSuns2.length === 0) continue;
+
+                html += '<div style="margin-bottom:20px;">';
+                html += '<div style="font-size:13px; font-weight:700; color:#2563EB; margin-bottom:8px; padding-left:2px;">📅 ' + mm2 + '월</div>';
+                html += '<table style="width:100%; border-collapse:collapse; font-size:9px;">';
+                html += '<thead><tr style="background:#1E3A5F; color:#fff;">';
+                html += '<th style="padding:7px 4px; width:30px; text-align:center;">No</th>';
+                html += '<th style="padding:7px 4px; width:55px; text-align:center;">이름</th>';
+                html += '<th style="padding:7px 4px; width:40px; text-align:center;">학년</th>';
+                html += '<th style="padding:7px 4px; width:50px; text-align:center;">담당</th>';
+                mSuns2.forEach(function(sun) {
+                    html += '<th style="padding:7px 2px; text-align:center; font-size:8px;">' + sun.label + '</th>';
+                });
+                html += '<th style="padding:7px 4px; width:40px; text-align:center;">출석</th>';
+                html += '<th style="padding:7px 4px; width:40px; text-align:center;">출석률</th>';
+                html += '</tr></thead><tbody>';
+
+                var num = 1;
+                deptOrder.forEach(function(dept) {
+                    var deptStudents = students.filter(function(s) { return getDept(s.grade) === dept; })
+                        .sort(function(a, b) { return getGradeNum(a.grade) - getGradeNum(b.grade); });
+                    if (deptStudents.length === 0) return;
+
+                    html += '<tr style="background:#EFF6FF;"><td colspan="' + (4 + mSuns2.length + 2) + '" style="padding:5px 8px; font-size:10px; font-weight:700; color:#1E3A5F;">▸ ' + deptName[dept] + '</td></tr>';
+
+                    deptStudents.forEach(function(s, sIdx) {
+                        var bg = sIdx % 2 === 0 ? '#fff' : '#F8FAFC';
+                        var pCnt = 0;
+                        html += '<tr style="background:' + bg + '; border-bottom:1px solid #F1F5F9;">';
+                        html += '<td style="padding:5px 4px; text-align:center; color:#999;">' + num + '</td>';
+                        html += '<td style="padding:5px 4px; text-align:center; font-weight:600;">' + s.name + '</td>';
+                        html += '<td style="padding:5px 4px; text-align:center;">' + s.grade + '</td>';
+                        html += '<td style="padding:5px 4px; text-align:center; font-size:8px;">' + (s.owner || '') + '</td>';
+
+                        mSuns2.forEach(function(sun) {
+                            var ak = sun.weekKey + '-' + s.id;
+                            var st = attendance[ak] || 'absent';
+                            if (st === 'present') {
+                                html += '<td style="padding:5px 2px; text-align:center; color:#059669; font-weight:700;">●</td>';
+                                pCnt++;
+                            } else if (st === 'late') {
+                                html += '<td style="padding:5px 2px; text-align:center; color:#F59E0B; font-weight:700;">▲</td>';
+                                pCnt++;
+                            } else {
+                                html += '<td style="padding:5px 2px; text-align:center; color:#E5E7EB;">○</td>';
+                            }
+                        });
+
+                        var sRate = mSuns2.length > 0 ? Math.round(pCnt / mSuns2.length * 100) : 0;
+                        var sRateColor = sRate >= 80 ? '#059669' : sRate >= 50 ? '#D97706' : '#DC2626';
+                        html += '<td style="padding:5px 4px; text-align:center; font-weight:600;">' + pCnt + '/' + mSuns2.length + '</td>';
+                        html += '<td style="padding:5px 4px; text-align:center; font-weight:700; color:' + sRateColor + ';">' + sRate + '%</td>';
+                        html += '</tr>';
+                        num++;
+                    });
+                });
+                html += '</tbody></table></div>';
+            }
+
+            html += '<div style="margin-top:30px; padding-top:15px; border-top:2px solid #E2E8F0; text-align:center;">';
+            html += '<div style="font-size:10px; color:#999;">부천중앙침례교회 주일학교 초등부 &nbsp;|&nbsp; ' + todayStr + ' 생성</div>';
+            html += '<div style="font-size:9px; color:#ccc; margin-top:3px;">이 보고서는 주일학교 출석 관리 시스템에서 자동 생성되었습니다.</div>';
+            html += '</div>';
+
+            html += '</div>';
+
+            var container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.innerHTML = html;
+            document.body.appendChild(container);
+
+            var opt = {
+                margin: 0,
+                filename: '부천중앙침례교회_주일학교_' + title.replace(/ /g, '_') + '_출석보고서.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait'
+                },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+
+            try {
+                await html2pdf().set(opt).from(container.firstChild).save();
+                showToast('PDF 보고서 다운로드 완료!', 'success');
+            } catch (e) {
+                console.error('PDF 생성 오류:', e);
+                showToast('PDF 생성 중 오류가 발생했습니다.', 'error');
+            } finally {
+                document.body.removeChild(container);
             }
         }
         function showToast(m,t='') { const toast=document.getElementById('toast');toast.textContent=m;toast.className='toast '+t+' show';setTimeout(()=>toast.classList.remove('show'),2500); }
