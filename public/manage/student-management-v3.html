@@ -810,6 +810,34 @@
           </div>
         </div>
 
+        <!-- 보고사항 입력 모달 -->
+        <div id="reportNoteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
+          <div style="background:#fff; border-radius:16px; max-width:440px; width:90vw; box-shadow:0 20px 60px rgba(0,0,0,0.3); overflow:hidden;">
+            <!-- 헤더 -->
+            <div style="background:linear-gradient(135deg,#1e293b,#334155); padding:18px 24px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="color:#fff; font-size:16px; font-weight:700;">보고사항 작성</span>
+              <button onclick="closeReportNoteModal()" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1;">&times;</button>
+            </div>
+            <!-- 본문 -->
+            <div style="padding:24px;">
+              <div style="margin-bottom:18px;">
+                <label style="display:block; font-size:13px; font-weight:700; margin-bottom:8px; color:#333;">기도제목 / 감사제목</label>
+                <textarea id="reportNotePrayer" rows="4" placeholder="예) 새친구 OOO 정착을 위해 기도 부탁드립니다." style="width:100%; padding:12px; border:1.5px solid #ddd; border-radius:10px; font-size:13px; font-family:inherit; resize:vertical; box-sizing:border-box; outline:none; transition:border 0.2s;" onfocus="this.style.borderColor='#2563EB'" onblur="this.style.borderColor='#ddd'"></textarea>
+              </div>
+              <div style="margin-bottom:8px;">
+                <label style="display:block; font-size:13px; font-weight:700; margin-bottom:8px; color:#333;">특이사항 / 건의사항</label>
+                <textarea id="reportNoteSpecial" rows="4" placeholder="예) 3월 셋째주 야외예배로 출석 인원 감소" style="width:100%; padding:12px; border:1.5px solid #ddd; border-radius:10px; font-size:13px; font-family:inherit; resize:vertical; box-sizing:border-box; outline:none; transition:border 0.2s;" onfocus="this.style.borderColor='#2563EB'" onblur="this.style.borderColor='#ddd'"></textarea>
+              </div>
+              <div style="font-size:11px; color:#999; margin-top:4px;">* 비워두면 보고사항 없이 PDF가 생성됩니다.</div>
+            </div>
+            <!-- 푸터 -->
+            <div style="padding:16px 24px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px;">
+              <button onclick="closeReportNoteModal()" style="padding:10px 20px; border:1.5px solid #ddd; border-radius:10px; background:#fff; color:#666; font-size:13px; font-weight:600; cursor:pointer;">취소</button>
+              <button onclick="confirmReportNote()" style="padding:10px 20px; border:none; border-radius:10px; background:linear-gradient(135deg,#2563EB,#1d4ed8); color:#fff; font-size:13px; font-weight:600; cursor:pointer;">PDF 생성</button>
+            </div>
+          </div>
+        </div>
+
     <div class="toast" id="toast"></div>
 
     <!-- 주간 노트 모달 -->
@@ -1396,6 +1424,31 @@
             modal.classList.add('active');
         }
         function closeExportModal() { var m = document.getElementById('exportModal'); if (m) m.classList.remove('active'); }
+
+        var pendingPdfArgs = null;
+
+        function openReportNoteModal(year, startMonth, endMonth, title) {
+            pendingPdfArgs = { year: year, startMonth: startMonth, endMonth: endMonth, title: title };
+            document.getElementById('reportNotePrayer').value = '';
+            document.getElementById('reportNoteSpecial').value = '';
+            document.getElementById('reportNoteModal').style.display = 'flex';
+        }
+
+        function closeReportNoteModal() {
+            document.getElementById('reportNoteModal').style.display = 'none';
+            pendingPdfArgs = null;
+        }
+
+        function confirmReportNote() {
+            if (!pendingPdfArgs) return;
+            var prayer = document.getElementById('reportNotePrayer').value.trim();
+            var special = document.getElementById('reportNoteSpecial').value.trim();
+            var args = { year: pendingPdfArgs.year, startMonth: pendingPdfArgs.startMonth, endMonth: pendingPdfArgs.endMonth, title: pendingPdfArgs.title };
+            document.getElementById('reportNoteModal').style.display = 'none';
+            pendingPdfArgs = null;
+            generatePdfReport(args.year, args.startMonth, args.endMonth, args.title, prayer, special);
+        }
+
         function doExport() {
             var t = document.querySelector('input[name="exportType"]:checked');
             if (!t) return;
@@ -1433,22 +1486,29 @@
                 closeExportModal(); return;
             }
             if (val === 'pdf-quarter') {
-                var pyq = parseInt(document.getElementById('exportPdfQYear').value, 10) || currentYear;
-                var pq = parseInt(document.getElementById('exportPdfQuarter').value, 10) || 1;
-                var pStartMonth = (pq - 1) * 3 + 1;
-                generatePdfReport(pyq, pStartMonth, pStartMonth + 2, pyq + '년 ' + pq + '분기');
-                closeExportModal(); return;
+                var y=parseInt(document.getElementById('exportPdfQYear').value)||currentYear;
+                var q=parseInt(document.getElementById('exportPdfQuarter').value)||1;
+                var start=(q-1)*3+1, end=(q-1)*3+3;
+                var label=y+'년 '+q+'분기';
+                closeExportModal();
+                openReportNoteModal(y, start, end, label);
+                return;
             }
             if (val === 'pdf-half') {
-                var pyh = parseInt(document.getElementById('exportPdfHYear').value, 10) || currentYear;
-                var ph = parseInt(document.getElementById('exportPdfHalf').value, 10) || 1;
-                generatePdfReport(pyh, ph === 1 ? 1 : 7, ph === 1 ? 6 : 12, pyh + '년 ' + (ph === 1 ? '상반기' : '하반기'));
-                closeExportModal(); return;
+                var y=parseInt(document.getElementById('exportPdfHYear').value)||currentYear;
+                var hv=parseInt(document.getElementById('exportPdfHalf').value)||1;
+                var start=hv===1?1:7, end=hv===1?6:12;
+                var label=y+'년 '+(hv===1?'상반기':'하반기');
+                closeExportModal();
+                openReportNoteModal(y, start, end, label);
+                return;
             }
             if (val === 'pdf-yearly') {
-                var pyy = parseInt(document.getElementById('exportPdfYYear').value, 10) || currentYear;
-                generatePdfReport(pyy, 1, 12, pyy + '년 연간');
-                closeExportModal(); return;
+                var y=parseInt(document.getElementById('exportPdfYYear').value)||currentYear;
+                var label=y+'년 연간';
+                closeExportModal();
+                openReportNoteModal(y, 1, 12, label);
+                return;
             }
         }
 
@@ -1908,316 +1968,306 @@
             showToast('엑셀 다운로드 완료!', 'success');
         }
 
-        async function generatePdfReport(year, startMonth, endMonth, title) {
-            if (typeof html2pdf === 'undefined') {
-                showToast('PDF 라이브러리 로딩 실패. 새로고침 후 다시 시도해주세요.', 'error');
-                return;
-            }
-
+        async function generatePdfReport(year, startMonth, endMonth, title, prayer, special) {
+            if (typeof html2pdf === 'undefined') { showToast('PDF 라이브러리 로딩 실패', 'error'); return; }
             showToast('PDF 생성 중...', 'success');
 
             var allSundays = [];
             for (var m = startMonth; m <= endMonth; m++) {
                 var suns = getSundaysInMonth(year, m);
                 suns.forEach(function(d, i) {
-                    allSundays.push({
-                        date: d,
-                        month: m,
-                        weekKey: year + '-' + m + '-' + (i + 1),
-                        label: (d.getMonth() + 1) + '/' + d.getDate()
-                    });
+                    allSundays.push({ month: m, weekKey: year + '-' + m + '-' + (i + 1), label: (d.getMonth()+1) + '/' + d.getDate() });
                 });
             }
-
             var deptOrder = ['grade1','grade2','grade3','grade4','grade5','grade6'];
-            var deptName = { grade1:'1학년', grade2:'2학년', grade3:'3학년', grade4:'4학년', grade5:'5학년', grade6:'6학년' };
-
-            var deptStats = {};
-            var grandTotal = 0, grandPresent = 0, grandLate = 0, grandAbsent = 0;
-            var allPerfect = [], allLongAbsent = [];
-
+            var dn = { grade1:'1학년', grade2:'2학년', grade3:'3학년', grade4:'4학년', grade5:'5학년', grade6:'6학년' };
+            var gT = 0, gP = 0, gL = 0, gA = 0, aPerf = [], aLong = [], ds = {};
             deptOrder.forEach(function(dept) {
-                var deptStudents = students.filter(function(s) { return getDept(s.grade) === dept; });
-                var total = deptStudents.length;
-                var presentCnt = 0, lateCnt = 0, absentCnt = 0;
-                var perfect = [], longAbsent = [];
-
-                deptStudents.forEach(function(s) {
-                    var sPresent = 0;
+                var list = students.filter(function(s) { return getDept(s.grade) === dept; });
+                var t = list.length, p = 0, l = 0, a = 0, pf = [], la = [];
+                list.forEach(function(s) {
+                    var sp = 0;
                     allSundays.forEach(function(sun) {
-                        var ak = sun.weekKey + '-' + s.id;
-                        var st = attendance[ak];
-                        if (st === 'present') { presentCnt++; sPresent++; }
-                        else if (st === 'late') { lateCnt++; sPresent++; }
-                        else { absentCnt++; }
+                        var st = attendance[sun.weekKey + '-' + s.id];
+                        if (st === 'present') { p++; sp++; } else if (st === 'late') { l++; sp++; } else { a++; }
                     });
-                    if (sPresent === allSundays.length && allSundays.length > 0) perfect.push(s.name);
-                    if (sPresent === 0 && allSundays.length > 0) longAbsent.push(s.name);
+                    if (sp === allSundays.length && allSundays.length > 0) pf.push(s.name);
+                    if (sp === 0 && allSundays.length > 0) la.push(s.name);
                 });
-
-                deptStats[dept] = { total: total, present: presentCnt, late: lateCnt, absent: absentCnt, perfect: perfect, longAbsent: longAbsent };
-                grandTotal += total; grandPresent += presentCnt; grandLate += lateCnt; grandAbsent += absentCnt;
-                allPerfect = allPerfect.concat(perfect);
-                allLongAbsent = allLongAbsent.concat(longAbsent);
+                ds[dept] = { t:t, p:p, l:l, a:a, pf:pf, la:la };
+                gT += t; gP += p; gL += l; gA += a; aPerf = aPerf.concat(pf); aLong = aLong.concat(la);
             });
-
-            var grandPossible = grandTotal * allSundays.length;
-            var grandRate = grandPossible > 0 ? Math.round((grandPresent + grandLate) / grandPossible * 100) : 0;
-
-            var monthlyRates = [];
+            var gPos = gT * allSundays.length;
+            var gRate = gPos > 0 ? Math.round((gP + gL) / gPos * 100) : 0;
+            var mRates = [];
             for (var mm = startMonth; mm <= endMonth; mm++) {
-                var mSuns = allSundays.filter(function(s) { return s.month === mm; });
-                var mPossible = students.length * mSuns.length;
-                var mPresent = 0;
-                students.forEach(function(s) {
-                    mSuns.forEach(function(sun) {
-                        var ak = sun.weekKey + '-' + s.id;
-                        var st = attendance[ak];
-                        if (st === 'present' || st === 'late') mPresent++;
-                    });
-                });
-                monthlyRates.push({ month: mm, rate: mPossible > 0 ? Math.round(mPresent / mPossible * 100) : 0 });
+                var ms = allSundays.filter(function(s) { return s.month === mm; });
+                var mp = 0; students.forEach(function(s) { ms.forEach(function(sun) { var st = attendance[sun.weekKey+'-'+s.id]; if (st==='present'||st==='late') mp++; }); });
+                mRates.push({ m: mm, r: (students.length * ms.length) > 0 ? Math.round(mp / (students.length * ms.length) * 100) : 0 });
             }
-
-            var weeklyPresent = [];
-            allSundays.forEach(function(sun) {
-                var cnt = 0;
-                students.forEach(function(s) {
-                    var ak = sun.weekKey + '-' + s.id;
-                    var st = attendance[ak];
-                    if (st === 'present' || st === 'late') cnt++;
-                });
-                weeklyPresent.push({ label: sun.label, count: cnt });
-            });
-            var maxWeekly = Math.max.apply(null, weeklyPresent.map(function(w) { return w.count; })) || 1;
-
-            var periodLabel = startMonth + '월 ~ ' + endMonth + '월';
             var today = new Date();
-            var todayStr = today.getFullYear() + '년 ' + (today.getMonth()+1) + '월 ' + today.getDate() + '일';
+            var tStr = today.getFullYear() + '. ' + (today.getMonth()+1) + '. ' + today.getDate() + '.';
 
-            var html = '';
-            html += '<div id="pdfReportContent" style="font-family:\'Malgun Gothic\',\'맑은 고딕\',sans-serif; color:#1a1a1a; width:210mm; padding:15mm 15mm 10mm 15mm; box-sizing:border-box;">';
+            var h = '<div style="font-family:Malgun Gothic,sans-serif; color:#222; width:170mm; font-size:13px; line-height:1.6;">';
 
-            html += '<div style="text-align:center; margin-bottom:30px; padding-bottom:25px; border-bottom:3px double #1E3A5F;">';
-            html += '<div style="font-size:11px; color:#666; letter-spacing:3px; margin-bottom:8px;">BUCHEON CENTRAL BAPTIST CHURCH</div>';
-            html += '<div style="font-size:28px; font-weight:800; color:#1E3A5F; margin-bottom:6px;">부천중앙침례교회</div>';
-            html += '<div style="font-size:18px; font-weight:700; color:#2563EB; margin-bottom:15px;">주일학교 초등부</div>';
-            html += '<div style="display:inline-block; background:linear-gradient(135deg,#1E3A5F,#2563EB); color:#fff; padding:10px 30px; border-radius:25px; font-size:16px; font-weight:700;">' + title + ' 출석 보고서</div>';
-            html += '<div style="margin-top:12px; font-size:12px; color:#888;">보고 기간: ' + year + '년 ' + periodLabel + ' (총 ' + allSundays.length + '주) &nbsp;|&nbsp; 작성일: ' + todayStr + '</div>';
-            html += '</div>';
+            /* ============================================ */
+            /*   페이지 1: 대시보드 요약                      */
+            /* ============================================ */
 
-            html += '<div style="display:flex; gap:12px; margin-bottom:25px;">';
-            var cards = [
-                { label: '전체 인원', value: grandTotal + '명', icon: '👥', color: '#2563EB', bg: '#EFF6FF' },
-                { label: '총 출석률', value: grandRate + '%', icon: '📊', color: grandRate >= 60 ? '#059669' : grandRate >= 40 ? '#D97706' : '#DC2626', bg: grandRate >= 60 ? '#ECFDF5' : grandRate >= 40 ? '#FFFBEB' : '#FEF2F2' },
-                { label: '개근자', value: allPerfect.length + '명', icon: '🏆', color: '#059669', bg: '#ECFDF5' },
-                { label: '장기결석', value: allLongAbsent.length + '명', icon: '⚠️', color: '#DC2626', bg: '#FEF2F2' }
+            h += '<div style="text-align:center; padding-bottom:18px; border-bottom:2px solid #333; margin-bottom:20px;">';
+            h += '<div style="font-size:10px; color:#999; letter-spacing:3px;">POCHEON CENTRAL BAPTIST CHURCH</div>';
+            h += '<div style="font-size:24px; font-weight:800; color:#222; margin:4px 0 2px;">포천중앙침례교회 주일학교</div>';
+            h += '<div style="font-size:16px; font-weight:700; color:#333;">' + title + ' 출석 보고서</div>';
+            h += '<div style="font-size:10px; color:#999; margin-top:6px;">' + year + '년 ' + startMonth + '월 ~ ' + endMonth + '월 (' + allSundays.length + '주) | 작성일 ' + tStr + '</div>';
+            h += '</div>';
+
+            /* --- 총괄 지표 (가로 4칸) --- */
+            h += '<table style="width:100%; border-collapse:collapse; margin-bottom:22px;">';
+            h += '<tr>';
+            var indicators = [
+                { label: '재적', value: gT + '명' },
+                { label: '출석률', value: gRate + '%' },
+                { label: '개근', value: aPerf.length + '명' },
+                { label: '장기결석', value: aLong.length + '명' }
             ];
-            cards.forEach(function(c) {
-                html += '<div style="flex:1; background:' + c.bg + '; border-radius:12px; padding:15px; text-align:center; border:1px solid ' + c.color + '22;">';
-                html += '<div style="font-size:22px; margin-bottom:4px;">' + c.icon + '</div>';
-                html += '<div style="font-size:24px; font-weight:800; color:' + c.color + ';">' + c.value + '</div>';
-                html += '<div style="font-size:11px; color:#666; margin-top:2px;">' + c.label + '</div>';
-                html += '</div>';
+            indicators.forEach(function(ind) {
+                h += '<td style="width:25%; text-align:center; padding:12px 0; border:1px solid #e0e0e0; border-top:3px solid #1E3A5F;">';
+                h += '<div style="font-size:11px; color:#888; margin-bottom:4px;">' + ind.label + '</div>';
+                h += '<div style="font-size:22px; font-weight:800; color:#222;">' + ind.value + '</div>';
+                h += '</td>';
             });
-            html += '</div>';
+            h += '</tr></table>';
 
-            html += '<div style="background:#F8FAFC; border-radius:12px; padding:18px; margin-bottom:25px; border:1px solid #E2E8F0;">';
-            html += '<div style="font-size:14px; font-weight:700; color:#1E3A5F; margin-bottom:12px;">📈 주차별 출석 인원 추이</div>';
-            html += '<div style="display:flex; align-items:flex-end; gap:3px; height:100px;">';
-            weeklyPresent.forEach(function(w) {
-                var pct = maxWeekly > 0 ? Math.round(w.count / maxWeekly * 100) : 0;
-                var barColor = w.count >= grandTotal * 0.6 ? '#2563EB' : w.count >= grandTotal * 0.3 ? '#F59E0B' : '#EF4444';
-                html += '<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;">';
-                html += '<span style="font-size:8px; color:#666; font-weight:600;">' + w.count + '</span>';
-                html += '<div style="width:100%; height:' + Math.max(pct, 5) + '%; background:' + barColor + '; border-radius:3px 3px 0 0; min-height:3px;"></div>';
-                html += '<span style="font-size:7px; color:#999; writing-mode:vertical-lr; transform:rotate(180deg); height:28px; overflow:hidden;">' + w.label + '</span>';
-                html += '</div>';
+            /* --- 월별 출석률 (가로 바) --- */
+            h += '<div style="font-size:13px; font-weight:700; color:#333; margin-bottom:10px; border-left:3px solid #1E3A5F; padding-left:6px;">월별 출석률</div>';
+            h += '<table style="width:100%; border-collapse:collapse; margin-bottom:22px;">';
+            mRates.forEach(function(mr) {
+                h += '<tr>';
+                h += '<td style="width:50px; padding:6px 8px; font-weight:600; font-size:12px;">' + mr.m + '월</td>';
+                h += '<td style="padding:6px 0;">';
+                h += '<div style="background:#eee; height:18px; border-radius:2px; width:100%; position:relative;">';
+                h += '<div style="background:#1E3A5F; height:18px; border-radius:2px; width:' + mr.r + '%;"></div>';
+                h += '</div>';
+                h += '</td>';
+                h += '<td style="width:55px; padding:6px 8px; text-align:right; font-weight:700; font-size:13px;">' + mr.r + '%</td>';
+                h += '</tr>';
             });
-            html += '</div></div>';
+            h += '</table>';
 
-            if (monthlyRates.length > 1) {
-                html += '<div style="display:flex; gap:10px; margin-bottom:25px;">';
-                monthlyRates.forEach(function(mr) {
-                    var barColor = mr.rate >= 60 ? '#059669' : mr.rate >= 40 ? '#D97706' : '#DC2626';
-                    var barBg = mr.rate >= 60 ? '#ECFDF5' : mr.rate >= 40 ? '#FFFBEB' : '#FEF2F2';
-                    html += '<div style="flex:1; background:' + barBg + '; border-radius:10px; padding:14px; text-align:center; border:1px solid ' + barColor + '22;">';
-                    html += '<div style="font-size:13px; font-weight:700; color:#1E3A5F; margin-bottom:8px;">' + mr.month + '월</div>';
-                    html += '<div style="font-size:28px; font-weight:800; color:' + barColor + ';">' + mr.rate + '%</div>';
-                    html += '<div style="margin-top:8px; background:#E2E8F0; border-radius:4px; height:8px; overflow:hidden;">';
-                    html += '<div style="height:100%; width:' + mr.rate + '%; background:' + barColor + '; border-radius:4px;"></div>';
-                    html += '</div></div>';
-                });
-                html += '</div>';
-            }
-
-            html += '<div style="margin-bottom:25px;">';
-            html += '<div style="font-size:14px; font-weight:700; color:#1E3A5F; margin-bottom:10px;">📋 학년부별 출석 현황</div>';
-            html += '<table style="width:100%; border-collapse:collapse; font-size:11px;">';
-            html += '<thead><tr style="background:#1E3A5F; color:#fff;">';
-            ['학년부','인원','출석','결석','지각','출석률','개근','장기결석'].forEach(function(h) {
-                html += '<th style="padding:10px 8px; text-align:center; font-weight:600;">' + h + '</th>';
-            });
-            html += '</tr></thead><tbody>';
-
+            /* --- 학년별 종합 --- */
+            h += '<div style="font-size:13px; font-weight:700; color:#333; margin-bottom:10px; border-left:3px solid #1E3A5F; padding-left:6px;">학년별 종합 현황</div>';
+            h += '<table style="width:100%; border-collapse:collapse; margin-bottom:22px; font-size:12px; text-align:center;">';
+            h += '<tr style="border-top:2px solid #1E3A5F; border-bottom:1px solid #bbb; background:#1E3A5F; color:#fff;">';
+            ['학년','인원','출석','결석','지각','출석률','주당 평균출석'].forEach(function(t) { h += '<th style="padding:7px; font-weight:600;">' + t + '</th>'; });
+            h += '</tr>';
             deptOrder.forEach(function(dept, idx) {
-                var st = deptStats[dept];
-                if (!st || st.total === 0) return;
-                var possible = st.total * allSundays.length;
-                var rate = possible > 0 ? Math.round((st.present + st.late) / possible * 100) : 0;
-                var rateColor = rate >= 60 ? '#059669' : rate >= 40 ? '#D97706' : '#DC2626';
-                var bg = idx % 2 === 0 ? '#fff' : '#F8FAFC';
-
-                html += '<tr style="background:' + bg + '; border-bottom:1px solid #E2E8F0;">';
-                html += '<td style="padding:9px 8px; text-align:center; font-weight:600;">' + deptName[dept] + '</td>';
-                html += '<td style="padding:9px 8px; text-align:center;">' + st.total + '명</td>';
-                html += '<td style="padding:9px 8px; text-align:center; color:#059669; font-weight:600;">' + st.present + '회</td>';
-                html += '<td style="padding:9px 8px; text-align:center; color:#DC2626;">' + st.absent + '회</td>';
-                html += '<td style="padding:9px 8px; text-align:center; color:#D97706;">' + st.late + '회</td>';
-                html += '<td style="padding:9px 8px; text-align:center;"><span style="background:' + rateColor + '; color:#fff; padding:3px 10px; border-radius:12px; font-weight:700; font-size:11px;">' + rate + '%</span></td>';
-                html += '<td style="padding:9px 8px; text-align:center;">' + st.perfect.length + '명</td>';
-                html += '<td style="padding:9px 8px; text-align:center;">' + st.longAbsent.length + '명</td>';
-                html += '</tr>';
+                var s = ds[dept]; if (s.t === 0) return;
+                var pos = s.t * allSundays.length;
+                var r = pos > 0 ? Math.round((s.p + s.l) / pos * 100) : 0;
+                var avgPerWeek = allSundays.length > 0 ? ((s.p + s.l) / allSundays.length).toFixed(1) : '0';
+                h += '<tr style="border-bottom:1px solid #ddd;' + (idx % 2 === 1 ? ' background:#fafafa;' : '') + '">';
+                h += '<td style="padding:6px;">' + dn[dept] + '</td>';
+                h += '<td style="padding:6px;">' + s.t + '명</td>';
+                h += '<td style="padding:6px;">' + s.p + '</td>';
+                h += '<td style="padding:6px;">' + s.a + '</td>';
+                h += '<td style="padding:6px;">' + s.l + '</td>';
+                h += '<td style="padding:6px; font-weight:700;">' + r + '%</td>';
+                h += '<td style="padding:6px;">' + avgPerWeek + '명</td>';
+                h += '</tr>';
             });
+            var gAvgPerWeek = allSundays.length > 0 ? ((gP + gL) / allSundays.length).toFixed(1) : '0';
+            h += '<tr style="border-top:1.5px solid #1E3A5F; border-bottom:2px solid #1E3A5F; background:#E8EDF3; font-weight:700; color:#1E3A5F;">';
+            h += '<td style="padding:7px;">합계</td><td style="padding:7px;">' + gT + '명</td><td style="padding:7px;">' + gP + '</td><td style="padding:7px;">' + gA + '</td><td style="padding:7px;">' + gL + '</td><td style="padding:7px;">' + gRate + '%</td><td style="padding:7px;">' + gAvgPerWeek + '명</td>';
+            h += '</tr></table>';
 
-            html += '<tr style="background:#1E3A5F; color:#fff; font-weight:700;">';
-            html += '<td style="padding:10px 8px; text-align:center;">합 계</td>';
-            html += '<td style="padding:10px 8px; text-align:center;">' + grandTotal + '명</td>';
-            html += '<td style="padding:10px 8px; text-align:center;">' + grandPresent + '회</td>';
-            html += '<td style="padding:10px 8px; text-align:center;">' + grandAbsent + '회</td>';
-            html += '<td style="padding:10px 8px; text-align:center;">' + grandLate + '회</td>';
-            html += '<td style="padding:10px 8px; text-align:center;"><span style="background:#fff; color:#1E3A5F; padding:3px 10px; border-radius:12px; font-weight:700;">' + grandRate + '%</span></td>';
-            html += '<td style="padding:10px 8px; text-align:center;">' + allPerfect.length + '명</td>';
-            html += '<td style="padding:10px 8px; text-align:center;">' + allLongAbsent.length + '명</td>';
-            html += '</tr>';
-            html += '</tbody></table></div>';
+            /* --- 특이사항 --- */
+            h += '<div style="font-size:13px; font-weight:700; color:#333; margin-bottom:10px; border-left:3px solid #1E3A5F; padding-left:6px;">특이사항</div>';
+            if (aPerf.length > 0) { h += '<div style="font-size:12px; margin-bottom:5px; padding-left:10px;">- 개근 (' + aPerf.length + '명) : ' + aPerf.join(', ') + '</div>'; }
+            if (aLong.length > 0) { h += '<div style="font-size:12px; margin-bottom:5px; padding-left:10px;">- 장기결석 (' + aLong.length + '명) : ' + aLong.join(', ') + '</div>'; }
+            if (aPerf.length === 0 && aLong.length === 0) { h += '<div style="font-size:12px; padding-left:10px; color:#999;">해당 없음</div>'; }
 
-            if (allPerfect.length > 0 || allLongAbsent.length > 0) {
-                html += '<div style="display:flex; gap:12px; margin-bottom:25px;">';
-                if (allPerfect.length > 0) {
-                    html += '<div style="flex:1; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:12px; padding:14px;">';
-                    html += '<div style="font-size:13px; font-weight:700; color:#059669; margin-bottom:8px;">🏆 개근자 명단 (' + allPerfect.length + '명)</div>';
-                    html += '<div style="font-size:12px; color:#065F46; line-height:1.8;">';
-                    allPerfect.forEach(function(name) {
-                        html += '<span style="display:inline-block; background:#fff; padding:2px 10px; border-radius:15px; margin:2px 3px; border:1px solid #A7F3D0;">' + name + '</span>';
-                    });
-                    html += '</div></div>';
+            /* ============================================ */
+            /*   페이지 2~: 월별 상세 현황 (2개월씩 한 페이지)  */
+            /* ============================================ */
+
+            for (var mi = 0; mi < mRates.length; mi++) {
+                var cm = mRates[mi].m;
+                var cmSuns = allSundays.filter(function(s) { return s.month === cm; });
+                if (cmSuns.length === 0) continue;
+
+                /* 2개월마다 새 페이지 */
+                if (mi % 2 === 0) {
+                    if (mi > 0) h += '</div>'; /* 이전 페이지 div 닫기 */
+                    h += '<div class="pdf-page-break" style="page-break-before:always; break-before:page;">';
                 }
-                if (allLongAbsent.length > 0) {
-                    html += '<div style="flex:1; background:#FEF2F2; border:1px solid #FECACA; border-radius:12px; padding:14px;">';
-                    html += '<div style="font-size:13px; font-weight:700; color:#DC2626; margin-bottom:8px;">⚠️ 장기결석자 명단 (' + allLongAbsent.length + '명)</div>';
-                    html += '<div style="font-size:12px; color:#991B1B; line-height:1.8;">';
-                    allLongAbsent.forEach(function(name) {
-                        html += '<span style="display:inline-block; background:#fff; padding:2px 10px; border-radius:15px; margin:2px 3px; border:1px solid #FECACA;">' + name + '</span>';
-                    });
-                    html += '</div></div>';
+
+                /* 2번째 월일 때 위에 여백 추가 */
+                if (mi % 2 === 1) {
+                    h += '<div style="margin-top:28px; border-top:1px solid #ddd; padding-top:20px;"></div>';
                 }
-                html += '</div>';
-            }
 
-            html += '<div style="page-break-before:always;"></div>';
-            html += '<div style="font-size:16px; font-weight:800; color:#1E3A5F; margin-bottom:5px; padding-top:5px;">📋 학생별 상세 출석 현황</div>';
-            html += '<div style="font-size:11px; color:#888; margin-bottom:15px;">' + year + '년 ' + periodLabel + ' (총 ' + allSundays.length + '주)</div>';
+                /* 월별 헤더 */
+                h += '<div style="border-bottom:2px solid #1E3A5F; padding-bottom:8px; margin-bottom:14px;">';
+                h += '<div style="font-size:16px; font-weight:800; color:#222;">' + year + '년 ' + cm + '월 출석 현황</div>';
+                h += '<div style="font-size:9px; color:#999; margin-top:2px;">주일 ' + cmSuns.length + '주 | ' + cmSuns.map(function(s){return s.label;}).join(', ') + '</div>';
+                h += '</div>';
 
-            for (var mm2 = startMonth; mm2 <= endMonth; mm2++) {
-                var mSuns2 = allSundays.filter(function(s) { return s.month === mm2; });
-                if (mSuns2.length === 0) continue;
+                /* 월별 학년 통계 계산 */
+                var cmDeptStats = [];
+                var cmTotalStudents = 0, cmTotalPresent = 0, cmTotalLate = 0, cmTotalAbsent = 0;
+                var cmPerfList = [], cmLongList = [];
 
-                html += '<div style="margin-bottom:20px;">';
-                html += '<div style="font-size:13px; font-weight:700; color:#2563EB; margin-bottom:8px; padding-left:2px;">📅 ' + mm2 + '월</div>';
-                html += '<table style="width:100%; border-collapse:collapse; font-size:9px;">';
-                html += '<thead><tr style="background:#1E3A5F; color:#fff;">';
-                html += '<th style="padding:7px 4px; width:30px; text-align:center;">No</th>';
-                html += '<th style="padding:7px 4px; width:55px; text-align:center;">이름</th>';
-                html += '<th style="padding:7px 4px; width:40px; text-align:center;">학년</th>';
-                html += '<th style="padding:7px 4px; width:50px; text-align:center;">담당</th>';
-                mSuns2.forEach(function(sun) {
-                    html += '<th style="padding:7px 2px; text-align:center; font-size:8px;">' + sun.label + '</th>';
-                });
-                html += '<th style="padding:7px 4px; width:40px; text-align:center;">출석</th>';
-                html += '<th style="padding:7px 4px; width:40px; text-align:center;">출석률</th>';
-                html += '</tr></thead><tbody>';
-
-                var num = 1;
                 deptOrder.forEach(function(dept) {
-                    var deptStudents = students.filter(function(s) { return getDept(s.grade) === dept; })
-                        .sort(function(a, b) { return getGradeNum(a.grade) - getGradeNum(b.grade); });
-                    if (deptStudents.length === 0) return;
-
-                    html += '<tr style="background:#EFF6FF;"><td colspan="' + (4 + mSuns2.length + 2) + '" style="padding:5px 8px; font-size:10px; font-weight:700; color:#1E3A5F;">▸ ' + deptName[dept] + '</td></tr>';
-
-                    deptStudents.forEach(function(s, sIdx) {
-                        var bg = sIdx % 2 === 0 ? '#fff' : '#F8FAFC';
-                        var pCnt = 0;
-                        html += '<tr style="background:' + bg + '; border-bottom:1px solid #F1F5F9;">';
-                        html += '<td style="padding:5px 4px; text-align:center; color:#999;">' + num + '</td>';
-                        html += '<td style="padding:5px 4px; text-align:center; font-weight:600;">' + s.name + '</td>';
-                        html += '<td style="padding:5px 4px; text-align:center;">' + s.grade + '</td>';
-                        html += '<td style="padding:5px 4px; text-align:center; font-size:8px;">' + (s.owner || '') + '</td>';
-
-                        mSuns2.forEach(function(sun) {
-                            var ak = sun.weekKey + '-' + s.id;
-                            var st = attendance[ak] || 'absent';
-                            if (st === 'present') {
-                                html += '<td style="padding:5px 2px; text-align:center; color:#059669; font-weight:700;">●</td>';
-                                pCnt++;
-                            } else if (st === 'late') {
-                                html += '<td style="padding:5px 2px; text-align:center; color:#F59E0B; font-weight:700;">▲</td>';
-                                pCnt++;
-                            } else {
-                                html += '<td style="padding:5px 2px; text-align:center; color:#E5E7EB;">○</td>';
-                            }
+                    var list = students.filter(function(s) { return getDept(s.grade) === dept; });
+                    if (list.length === 0) return;
+                    var dPresent = 0, dLate = 0, dAbsent = 0, dPerf = [], dLong = [];
+                    list.forEach(function(s) {
+                        var sPresent = 0;
+                        cmSuns.forEach(function(sun) {
+                            var st = attendance[sun.weekKey + '-' + s.id];
+                            if (st === 'present') { dPresent++; sPresent++; }
+                            else if (st === 'late') { dLate++; sPresent++; }
+                            else { dAbsent++; }
                         });
-
-                        var sRate = mSuns2.length > 0 ? Math.round(pCnt / mSuns2.length * 100) : 0;
-                        var sRateColor = sRate >= 80 ? '#059669' : sRate >= 50 ? '#D97706' : '#DC2626';
-                        html += '<td style="padding:5px 4px; text-align:center; font-weight:600;">' + pCnt + '/' + mSuns2.length + '</td>';
-                        html += '<td style="padding:5px 4px; text-align:center; font-weight:700; color:' + sRateColor + ';">' + sRate + '%</td>';
-                        html += '</tr>';
-                        num++;
+                        if (sPresent === cmSuns.length) dPerf.push(s.name);
+                        if (sPresent === 0) dLong.push(s.name);
                     });
+                    var dTotal = list.length * cmSuns.length;
+                    var dRate = dTotal > 0 ? Math.round((dPresent + dLate) / dTotal * 100) : 0;
+                    /* 주당 평균 출석 인원 */
+                    var avgAttend = cmSuns.length > 0 ? ((dPresent + dLate) / cmSuns.length).toFixed(1) : '0';
+
+                    cmDeptStats.push({ name: dn[dept], count: list.length, avgAttend: avgAttend, rate: dRate, perf: dPerf, long: dLong });
+                    cmTotalStudents += list.length;
+                    cmTotalPresent += dPresent;
+                    cmTotalLate += dLate;
+                    cmTotalAbsent += dAbsent;
+                    cmPerfList = cmPerfList.concat(dPerf);
+                    cmLongList = cmLongList.concat(dLong);
                 });
-                html += '</tbody></table></div>';
+
+                var cmTotalOpp = cmTotalStudents * cmSuns.length;
+                var cmOverallRate = cmTotalOpp > 0 ? Math.round((cmTotalPresent + cmTotalLate) / cmTotalOpp * 100) : 0;
+                var cmAvgTotal = cmSuns.length > 0 ? ((cmTotalPresent + cmTotalLate) / cmSuns.length).toFixed(1) : '0';
+
+                /* 요약 숫자 (가로 3칸) */
+                h += '<table style="width:100%; border-collapse:collapse; margin-bottom:12px;">';
+                h += '<tr>';
+                h += '<td style="width:33%; text-align:center; padding:8px 0; border:1px solid #e0e0e0; border-top:3px solid #1E3A5F;">';
+                h += '<div style="font-size:9px; color:#888;">재적</div><div style="font-size:16px; font-weight:800;">' + cmTotalStudents + '명</div></td>';
+                h += '<td style="width:34%; text-align:center; padding:8px 0; border:1px solid #e0e0e0; border-top:3px solid #1E3A5F;">';
+                h += '<div style="font-size:9px; color:#888;">출석률</div><div style="font-size:16px; font-weight:800;">' + cmOverallRate + '%</div></td>';
+                h += '<td style="width:33%; text-align:center; padding:8px 0; border:1px solid #e0e0e0; border-top:3px solid #1E3A5F;">';
+                h += '<div style="font-size:9px; color:#888;">주당 평균 출석</div><div style="font-size:16px; font-weight:800;">' + cmAvgTotal + '명</div></td>';
+                h += '</tr></table>';
+
+                /* 학년별 테이블 - 직관적인 컬럼 */
+                h += '<table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:11px; text-align:center;">';
+                h += '<tr style="background:#1E3A5F; color:#fff;">';
+                ['학년', '재적', '주당 평균출석', '출석률', '개근', '장기결석'].forEach(function(t) {
+                    h += '<th style="padding:6px; font-weight:600; border:1px solid #555;">' + t + '</th>';
+                });
+                h += '</tr>';
+
+                cmDeptStats.forEach(function(d, idx) {
+                    var bg = idx % 2 === 0 ? '#fff' : '#f9f9f9';
+                    h += '<tr style="background:' + bg + ';">';
+                    h += '<td style="padding:5px; border:1px solid #ddd; font-weight:600;">' + d.name + '</td>';
+                    h += '<td style="padding:5px; border:1px solid #ddd;">' + d.count + '명</td>';
+                    h += '<td style="padding:5px; border:1px solid #ddd;">' + d.avgAttend + '명</td>';
+                    h += '<td style="padding:5px; border:1px solid #ddd; font-weight:700;">' + d.rate + '%</td>';
+                    h += '<td style="padding:5px; border:1px solid #ddd;">' + d.perf.length + '명</td>';
+                    h += '<td style="padding:5px; border:1px solid #ddd;">' + d.long.length + '명</td>';
+                    h += '</tr>';
+                });
+
+                h += '<tr style="background:#1E3A5F; color:#fff; font-weight:700;">';
+                h += '<td style="padding:6px; border:1px solid #555;">합계</td>';
+                h += '<td style="padding:6px; border:1px solid #555;">' + cmTotalStudents + '명</td>';
+                h += '<td style="padding:6px; border:1px solid #555;">' + cmAvgTotal + '명</td>';
+                h += '<td style="padding:6px; border:1px solid #555;">' + cmOverallRate + '%</td>';
+                h += '<td style="padding:6px; border:1px solid #555;">' + cmPerfList.length + '명</td>';
+                h += '<td style="padding:6px; border:1px solid #555;">' + cmLongList.length + '명</td>';
+                h += '</tr></table>';
+
+                /* 개근·장기결석 명단 */
+                if (cmPerfList.length > 0 || cmLongList.length > 0) {
+                    h += '<div style="font-size:10px; margin-top:6px;">';
+                    if (cmPerfList.length > 0) h += '<div style="margin-bottom:3px;">- 개근 : ' + cmPerfList.join(', ') + '</div>';
+                    if (cmLongList.length > 0) h += '<div style="margin-bottom:3px;">- 장기결석 : ' + cmLongList.join(', ') + '</div>';
+                    h += '</div>';
+                }
             }
 
-            html += '<div style="margin-top:30px; padding-top:15px; border-top:2px solid #E2E8F0; text-align:center;">';
-            html += '<div style="font-size:10px; color:#999;">부천중앙침례교회 주일학교 초등부 &nbsp;|&nbsp; ' + todayStr + ' 생성</div>';
-            html += '<div style="font-size:9px; color:#ccc; margin-top:3px;">이 보고서는 주일학교 출석 관리 시스템에서 자동 생성되었습니다.</div>';
-            html += '</div>';
+            /* 마지막 페이지 div 닫기 */
+            if (mRates.length > 0) h += '</div>';
 
-            html += '</div>';
+            /* ============================================ */
+            /*   마지막: 보고사항 + 보고자                     */
+            /* ============================================ */
+
+            var hasNote = (prayer && prayer.length > 0) || (special && special.length > 0);
+
+            if (hasNote) {
+                h += '<div class="pdf-page-break" style="page-break-before:always; break-before:page;">';
+                h += '<div style="border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:22px;">';
+                h += '<div style="font-size:18px; font-weight:800; color:#222;">보고사항</div>';
+                h += '</div>';
+
+                if (prayer && prayer.length > 0) {
+                    h += '<div style="margin-bottom:22px;">';
+                    h += '<div style="font-size:13px; font-weight:700; color:#333; margin-bottom:10px; border-left:3px solid #1E3A5F; padding-left:6px;">기도제목 / 감사제목</div>';
+                    var prayerLines = prayer.replace(/</g,'&lt;').replace(/>/g,'&gt;').split('\n').filter(function(l){ return l.trim() !== ''; });
+                    var prayerHtml = prayerLines.map(function(line) {
+                        return '<p style="margin:0 0 6px 0; padding-left:1.2em; text-indent:-1.2em;">' + line.trim() + '</p>';
+                    }).join('');
+                    h += '<div style="font-size:12px; line-height:1.8; color:#333; padding:12px 14px; background:#f9f9f9; border-radius:4px;">' + prayerHtml + '</div>';
+                    h += '</div>';
+                }
+
+                if (special && special.length > 0) {
+                    h += '<div style="margin-bottom:22px;">';
+                    h += '<div style="font-size:13px; font-weight:700; color:#333; margin-bottom:10px; border-left:3px solid #1E3A5F; padding-left:6px;">특이사항 / 건의사항</div>';
+                    var specialLines = special.replace(/</g,'&lt;').replace(/>/g,'&gt;').split('\n').filter(function(l){ return l.trim() !== ''; });
+                    var specialHtml = specialLines.map(function(line) {
+                        return '<p style="margin:0 0 6px 0; padding-left:1.2em; text-indent:-1.2em;">' + line.trim() + '</p>';
+                    }).join('');
+                    h += '<div style="font-size:12px; line-height:1.8; color:#333; padding:12px 14px; background:#f9f9f9; border-radius:4px;">' + specialHtml + '</div>';
+                    h += '</div>';
+                }
+
+                h += '</div>';
+            }
+
+            /* --- 보고자 서명란 --- */
+            h += '<div style="margin-top:40px; text-align:right; font-size:13px; color:#333; line-height:2;">';
+            h += '<div style="font-size:12px; color:#888;">보고일자: ' + tStr + '</div>';
+            h += '<div style="font-size:14px; font-weight:700; margin-top:6px;">포천중앙침례교회 주일학교 초등부</div>';
+            h += '<div style="font-size:16px; font-weight:800; margin-top:2px;">담당 신승용 전도사</div>';
+            h += '</div>';
+
+            h += '</div>'; /* wrapper div 닫기 */
 
             var container = document.createElement('div');
             container.style.position = 'fixed';
             container.style.left = '-9999px';
             container.style.top = '0';
-            container.innerHTML = html;
+            container.innerHTML = h;
             document.body.appendChild(container);
 
-            var opt = {
-                margin: 0,
-                filename: '부천중앙침례교회_주일학교_' + title.replace(/ /g, '_') + '_출석보고서.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    logging: false
-                },
-                jsPDF: {
-                    unit: 'mm',
-                    format: 'a4',
-                    orientation: 'portrait'
-                },
-                pagebreak: { mode: ['css', 'legacy'] }
-            };
-
             try {
-                await html2pdf().set(opt).from(container.firstChild).save();
-                showToast('PDF 보고서 다운로드 완료!', 'success');
+                await html2pdf().set({
+                    margin: [15, 20, 15, 20],
+                    filename: '포천중앙침례교회_주일학교_' + title.replace(/ /g, '_') + '_출석보고서.pdf',
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { mode: ['css'], before: '.pdf-page-break', avoid: ['table', 'tr'] }
+                }).from(container.firstChild).save();
+                showToast('PDF 다운로드 완료', 'success');
             } catch (e) {
-                console.error('PDF 생성 오류:', e);
-                showToast('PDF 생성 중 오류가 발생했습니다.', 'error');
+                console.error('PDF 오류:', e);
+                showToast('PDF 생성 실패', 'error');
             } finally {
                 document.body.removeChild(container);
             }
