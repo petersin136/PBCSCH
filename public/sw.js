@@ -9,7 +9,7 @@
  *  - network-only       : /api/*, supabase 통신, 진도/학생 데이터 (항상 최신)
  */
 
-const CACHE_VERSION = "v1.0.0";
+const CACHE_VERSION = "v1.0.1";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME_STATIC = `static-${CACHE_VERSION}`;
 const RUNTIME_PAGES = `pages-${CACHE_VERSION}`;
@@ -69,6 +69,27 @@ function isApiOrDynamic(url) {
   return false;
 }
 
+function isCacheableScheme(url) {
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+function safeCachePut(cache, request, response) {
+  try {
+    let reqUrl;
+    try {
+      reqUrl = new URL(request.url);
+    } catch (e) {
+      return;
+    }
+    if (!isCacheableScheme(reqUrl)) return;
+    if (!response || response.status !== 200) return;
+    if (response.type === "opaque" || response.type === "error") return;
+    cache.put(request, response).catch(() => undefined);
+  } catch (e) {
+    // ignore
+  }
+}
+
 function isStaticAsset(url) {
   return (
     url.pathname.startsWith("/_next/static/") ||
@@ -96,9 +117,7 @@ async function cacheFirst(request, cacheName) {
   if (cached) return cached;
   try {
     const response = await fetch(request);
-    if (response && response.status === 200 && response.type !== "opaque") {
-      cache.put(request, response.clone());
-    }
+    safeCachePut(cache, request, response.clone());
     return response;
   } catch (err) {
     if (cached) return cached;
@@ -110,9 +129,7 @@ async function networkFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   try {
     const response = await fetch(request);
-    if (response && response.status === 200) {
-      cache.put(request, response.clone());
-    }
+    safeCachePut(cache, request, response.clone());
     return response;
   } catch (err) {
     const cached = await cache.match(request);
@@ -128,9 +145,7 @@ async function staleWhileRevalidate(request, cacheName) {
   const cached = await cache.match(request);
   const networkPromise = fetch(request)
     .then((response) => {
-      if (response && response.status === 200 && response.type !== "opaque") {
-        cache.put(request, response.clone());
-      }
+      safeCachePut(cache, request, response.clone());
       return response;
     })
     .catch(() => undefined);
@@ -148,6 +163,9 @@ self.addEventListener("fetch", (event) => {
   } catch (e) {
     return;
   }
+
+  // chrome-extension://, data:, blob:, ws: 등 캐시 불가 스킴은 모두 무시
+  if (!isCacheableScheme(url)) return;
 
   // 진도/학생/Supabase 등 동적 데이터는 절대 캐싱하지 않음 - 항상 네트워크
   if (isApiOrDynamic(url)) {
