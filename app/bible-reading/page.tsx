@@ -120,35 +120,6 @@ const normalizeKorean = (value: string) => {
   return text;
 };
 
-const consumeMatch = (source: string, target: string) => {
-  if (!source || !target) return null;
-
-  if (source.startsWith(target)) {
-    return source.slice(target.length);
-  }
-
-  if (target.length <= 1) {
-    return null;
-  }
-
-  // Allow consuming when the first ~50% of the target appears at the
-  // beginning of the source. Forgiving for kids' pronunciation gaps.
-  const headLength = Math.max(1, Math.floor(target.length * 0.5));
-  if (headLength < target.length && source.startsWith(target.slice(0, headLength))) {
-    return source.slice(headLength);
-  }
-
-  // Allow a single mismatched first syllable when the rest matches.
-  if (target.length >= 3 && source.length >= target.length - 1) {
-    const tail = target.slice(1);
-    if (source.slice(1).startsWith(tail)) {
-      return source.slice(target.length);
-    }
-  }
-
-  return null;
-};
-
 const isLooseMatch = (spoken: string, target: string) => {
   if (!spoken || !target) return false;
   if (spoken === target) return true;
@@ -204,7 +175,6 @@ const advanceReadIndex = (
     .split(/\s+/)
     .map(normalizeKorean)
     .filter(Boolean);
-  let spokenStream = spokenWords.join("");
 
   const skipEmpty = (idx: number) => {
     let i = idx;
@@ -229,61 +199,45 @@ const advanceReadIndex = (
     return true;
   };
 
-  spokenWords.forEach((spoken) => {
+  // 한 번 매칭에 실패한 음성 단어가 연속으로 누적되면 더 이상 진행하지 않는다.
+  // (이전 절 음성 잔여물이 다음 절 단어와 부분 일치해 과도하게 advance 되는 것 방지)
+  let consecutiveMisses = 0;
+  const MAX_CONSECUTIVE_MISSES = 6;
+
+  for (const spoken of spokenWords) {
+    if (consecutiveMisses >= MAX_CONSECUTIVE_MISSES) break;
     nextIndex = skipEmpty(nextIndex);
+    if (nextIndex >= words.length) break;
+
     const current = words[nextIndex];
     if (current && isLooseMatch(spoken, current.normalized)) {
       nextIndex = skipEmpty(nextIndex + 1);
-      return;
+      consecutiveMisses = 0;
+      continue;
     }
 
-    if (spoken.length < 2) return;
+    if (spoken.length < 2) {
+      // 너무 짧은 음절은 그냥 흘려보낸다 (오매칭 위험 큼).
+      continue;
+    }
 
-    for (let offset = 1; offset <= 3; offset += 1) {
+    let jumped = false;
+    // 점프는 최대 2칸까지만 허용 — 3칸 이상이면 잘못 건너뛴 가능성 높음.
+    for (let offset = 1; offset <= 2; offset += 1) {
       const candidate = words[nextIndex + offset];
       if (!candidate) break;
       if (!canJumpTo(nextIndex + offset)) break;
       if (isLooseMatch(spoken, candidate.normalized)) {
         nextIndex = skipEmpty(nextIndex + offset + 1);
-        return;
-      }
-    }
-  });
-
-  let safety = 0;
-  while (spokenStream && safety < 600 && nextIndex < words.length) {
-    nextIndex = skipEmpty(nextIndex);
-    if (nextIndex >= words.length) break;
-    const current = words[nextIndex];
-    if (!current) break;
-
-    const remaining = consumeMatch(spokenStream, current.normalized);
-    if (remaining !== null) {
-      spokenStream = remaining;
-      nextIndex = skipEmpty(nextIndex + 1);
-      safety += 1;
-      continue;
-    }
-
-    let jumped = false;
-    for (let offset = 1; offset <= 3; offset += 1) {
-      const candidate = words[nextIndex + offset];
-      if (!candidate || !canJumpTo(nextIndex + offset)) break;
-      if (candidate.normalized.length < 1) continue;
-
-      const skipped = consumeMatch(spokenStream, candidate.normalized);
-      if (skipped !== null) {
-        spokenStream = skipped;
-        nextIndex = skipEmpty(nextIndex + offset + 1);
-        safety += 1;
         jumped = true;
         break;
       }
     }
 
-    if (!jumped) {
-      spokenStream = spokenStream.slice(1);
-      safety += 1;
+    if (jumped) {
+      consecutiveMisses = 0;
+    } else {
+      consecutiveMisses += 1;
     }
   }
 
@@ -1688,8 +1642,38 @@ export default function BibleReadingPage() {
           word-break: keep-all;
         }
 
-        .brp-prayer-text {
-          white-space: pre-line;
+        .brp-prayer-text-head {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .brp-prayer-word-count {
+          font-size: 12px;
+          color: rgba(26, 26, 26, 0.5);
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+
+        .brp-prayer-text-line {
+          margin-bottom: 6px;
+        }
+
+        .brp-prayer-text-line:last-child {
+          margin-bottom: 0;
+        }
+
+        .brp-prayer-word {
+          display: inline;
+          margin-right: 0.28em;
+          color: #1a1a1a;
+          transition: color 0.25s ease, font-weight 0.25s ease;
+        }
+
+        .brp-prayer-word.is-read {
+          color: #a8403e;
+          font-weight: 700;
         }
 
         .brp-prayer-actions {
@@ -1699,8 +1683,10 @@ export default function BibleReadingPage() {
           flex-wrap: wrap;
         }
 
+        .brp-prayer-mic,
         .brp-prayer-check,
         .brp-prayer-next,
+        .brp-prayer-restart,
         .brp-prayer-reset {
           border: 0;
           cursor: pointer;
@@ -1711,14 +1697,58 @@ export default function BibleReadingPage() {
           white-space: nowrap;
         }
 
-        .brp-prayer-check {
+        .brp-prayer-mic {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
           background: #1a1a1a;
           color: #f7f6f3;
         }
 
-        .brp-prayer-check.is-done {
+        .brp-prayer-mic.is-listening {
+          background: #b43f3f;
+          color: #fff;
+        }
+
+        .brp-prayer-mic:disabled {
+          cursor: not-allowed;
+          background: rgba(26, 26, 26, 0.08);
+          color: rgba(26, 26, 26, 0.32);
+        }
+
+        .brp-prayer-mic-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+
+        .brp-prayer-mic.is-listening .brp-prayer-mic-dot {
+          animation: brpPulse 1.2s ease infinite;
+        }
+
+        .brp-prayer-restart {
           background: transparent;
-          color: rgba(26, 26, 26, 0.7);
+          color: rgba(26, 26, 26, 0.6);
+          border: 1px solid rgba(26, 26, 26, 0.16);
+          font-size: 13px;
+          padding: 10px 14px;
+        }
+
+        .brp-prayer-restart:hover {
+          color: #1a1a1a;
+          background: rgba(26, 26, 26, 0.05);
+        }
+
+        .brp-prayer-check {
+          background: transparent;
+          color: rgba(26, 26, 26, 0.72);
+          border: 1px solid rgba(26, 26, 26, 0.18);
+        }
+
+        .brp-prayer-check.is-done {
+          background: rgba(26, 26, 26, 0.06);
+          color: rgba(26, 26, 26, 0.62);
           border: 1px solid rgba(26, 26, 26, 0.18);
         }
 
@@ -1729,7 +1759,7 @@ export default function BibleReadingPage() {
         }
 
         .brp-prayer-next:hover,
-        .brp-prayer-check.is-done:hover {
+        .brp-prayer-check:hover {
           background: rgba(26, 26, 26, 0.05);
           color: #1a1a1a;
         }
@@ -2124,11 +2154,14 @@ export default function BibleReadingPage() {
             align-items: stretch;
           }
 
+          .brp-prayer-mic,
           .brp-prayer-check,
-          .brp-prayer-next {
+          .brp-prayer-next,
+          .brp-prayer-restart {
             width: 100%;
             text-align: center;
             padding: 12px 14px;
+            justify-content: center;
           }
 
           .brp-dock {
