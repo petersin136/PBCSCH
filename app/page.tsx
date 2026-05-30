@@ -345,6 +345,7 @@ export default function Home() {
                 {section.categoryKr}
               </a>
             ))}
+            <a href="/bible-reading">성경읽기</a>
           </nav>
         </header>
         <div className="right-indicators" aria-hidden="true">

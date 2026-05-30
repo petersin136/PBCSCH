@@ -29,6 +29,7 @@ export default function JoyfulActivitiesPage() {
           <a href="/#section-4" onClick={() => { setMobileNavOpen(false); window.location.href = "/#section-4"; }}>특별활동</a>
           <a href="/#section-5" onClick={() => { setMobileNavOpen(false); window.location.href = "/#section-5"; }}>사랑하는 교사들</a>
           <a href="/#section-6" onClick={() => { setMobileNavOpen(false); window.location.href = "/#section-6"; }}>갤러리</a>
+          <a href="/bible-reading" onClick={() => setMobileNavOpen(false)}>성경읽기</a>
         </nav>
         <button
           className="mobile-nav-toggle"
