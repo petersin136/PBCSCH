@@ -58,7 +58,7 @@ if (isDevHost) {
   // fetch listener를 등록하지 않음 → 모든 요청은 SW를 우회하여 네트워크 직행
 } else {
 
-const CACHE_VERSION = "v1.0.2";
+const CACHE_VERSION = "v1.0.3";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME_STATIC = `static-${CACHE_VERSION}`;
 const RUNTIME_PAGES = `pages-${CACHE_VERSION}`;

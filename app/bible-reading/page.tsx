@@ -100,17 +100,21 @@ const getTodayKey = () => {
   return `${y}-${m}-${day}`;
 };
 
+const PARTICLE_REGEX =
+  /(으로|에게|에서|부터|까지|처럼|보다|은|는|이|가|을|를|에|의|와|과|도|만|로|께|야|아)$/u;
+
 const normalizeKorean = (value: string) => {
   let text = value
     .toLowerCase()
     .replace(/[^\u3131-\u318e\uac00-\ud7a3a-z0-9]/g, "")
     .trim();
 
+  // 조사 최대 2번까지 떼되, 절대 빈 문자열로 만들지 않는다.
+  // (예: "이는" → "이" 까지만, 더 떼면 "" 이 되어 매칭이 불가능해짐)
   for (let i = 0; i < 2; i += 1) {
-    text = text.replace(
-      /(으로|에게|에서|부터|까지|처럼|보다|은|는|이|가|을|를|에|의|와|과|도|만|로|께|야|아)$/u,
-      "",
-    );
+    const stripped = text.replace(PARTICLE_REGEX, "");
+    if (!stripped || stripped === text) break;
+    text = stripped;
   }
 
   return text;
@@ -306,7 +310,17 @@ export default function BibleReadingPage() {
         .filter(Boolean);
       let spokenStream = spokenWords.join("");
 
-      let nextIndex = readCountRef.current;
+      // 정규화 결과가 빈 문자열인 단어(예: "이는"가 모든 조사 제거 후 "" 가
+      // 되는 등의 극단 케이스)는 매칭이 불가능하므로 자동으로 건너뛴다.
+      const skipEmpty = (idx: number) => {
+        let i = idx;
+        while (i < words.length && words[i] && words[i].normalized === "") {
+          i += 1;
+        }
+        return i;
+      };
+
+      let nextIndex = skipEmpty(readCountRef.current);
 
       const canJumpTo = (toIndex: number) => {
         if (toIndex <= nextIndex) return false;
@@ -314,6 +328,7 @@ export default function BibleReadingPage() {
         for (let i = nextIndex; i <= toIndex; i += 1) {
           const w = words[i];
           if (!w) return false;
+          if (w.normalized === "") continue;
           if (seen.has(w.normalized)) return false;
           seen.add(w.normalized);
         }
@@ -321,9 +336,10 @@ export default function BibleReadingPage() {
       };
 
       spokenWords.forEach((spoken) => {
+        nextIndex = skipEmpty(nextIndex);
         const current = words[nextIndex];
         if (current && isLooseMatch(spoken, current.normalized)) {
-          nextIndex += 1;
+          nextIndex = skipEmpty(nextIndex + 1);
           return;
         }
 
@@ -335,7 +351,7 @@ export default function BibleReadingPage() {
           if (!candidate) break;
           if (!canJumpTo(nextIndex + offset)) break;
           if (isLooseMatch(spoken, candidate.normalized)) {
-            nextIndex += offset + 1;
+            nextIndex = skipEmpty(nextIndex + offset + 1);
             return;
           }
         }
@@ -348,13 +364,15 @@ export default function BibleReadingPage() {
       // already read (or recognition noise).
       let safety = 0;
       while (spokenStream && safety < 600 && nextIndex < words.length) {
+        nextIndex = skipEmpty(nextIndex);
+        if (nextIndex >= words.length) break;
         const current = words[nextIndex];
         if (!current) break;
 
         const remaining = consumeMatch(spokenStream, current.normalized);
         if (remaining !== null) {
           spokenStream = remaining;
-          nextIndex += 1;
+          nextIndex = skipEmpty(nextIndex + 1);
           safety += 1;
           continue;
         }
@@ -368,7 +386,7 @@ export default function BibleReadingPage() {
           const skipped = consumeMatch(spokenStream, candidate.normalized);
           if (skipped !== null) {
             spokenStream = skipped;
-            nextIndex += offset + 1;
+            nextIndex = skipEmpty(nextIndex + offset + 1);
             safety += 1;
             jumped = true;
             break;
@@ -380,6 +398,8 @@ export default function BibleReadingPage() {
           safety += 1;
         }
       }
+
+      nextIndex = skipEmpty(nextIndex);
 
       if (nextIndex !== readCountRef.current) {
         readCountRef.current = nextIndex;
@@ -902,7 +922,7 @@ export default function BibleReadingPage() {
           color: #1a1a1a;
           font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
             sans-serif;
-          padding: 88px clamp(18px, 5vw, 72px) 140px;
+          padding: 88px clamp(8px, 2.4vw, 32px) 140px;
         }
 
         .brp-header {
@@ -1126,14 +1146,14 @@ export default function BibleReadingPage() {
         .brp-reader {
           background: rgba(255, 255, 255, 0.52);
           border: 1px solid rgba(26, 26, 26, 0.08);
-          padding: clamp(24px, 4.5vw, 52px);
+          padding: clamp(16px, 2.4vw, 28px) clamp(12px, 2vw, 22px);
           overflow: hidden;
         }
 
         .brp-verse {
           display: grid;
-          grid-template-columns: 2.25em minmax(0, 1fr);
-          column-gap: clamp(12px, 2vw, 22px);
+          grid-template-columns: 1.8em minmax(0, 1fr);
+          column-gap: clamp(8px, 1.2vw, 14px);
           align-items: start;
           margin: 0 0 22px;
           font-size: clamp(17px, 1.75vw, 21px);
@@ -1648,8 +1668,8 @@ export default function BibleReadingPage() {
         @media (max-width: 760px) {
           .brp-page {
             padding-top: 60px;
-            padding-left: 10px;
-            padding-right: 10px;
+            padding-left: 4px;
+            padding-right: 4px;
             padding-bottom: 188px;
           }
 
@@ -1756,13 +1776,13 @@ export default function BibleReadingPage() {
           }
 
           .brp-reader {
-            padding: 18px 12px;
+            padding: 14px 6px;
             border-radius: 14px;
           }
 
           .brp-verse {
-            grid-template-columns: 1.6em minmax(0, 1fr);
-            column-gap: 10px;
+            grid-template-columns: 1.4em minmax(0, 1fr);
+            column-gap: 6px;
             margin-bottom: 18px;
             font-size: 16.5px;
             line-height: 1.8;

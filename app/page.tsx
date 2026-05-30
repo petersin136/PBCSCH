@@ -341,11 +341,17 @@ export default function Home() {
           </button>
           <nav className={`top-right ${mobileNavOpen ? "is-open" : ""}`}>
             {sections.map((section) => (
-              <a key={section.id} href={`#${section.id}`}>
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                onClick={() => setMobileNavOpen(false)}
+              >
                 {section.categoryKr}
               </a>
             ))}
-            <a href="/bible-reading">성경읽기</a>
+            <a href="/bible-reading" onClick={() => setMobileNavOpen(false)}>
+              성경읽기
+            </a>
           </nav>
         </header>
         <div className="right-indicators" aria-hidden="true">
@@ -1382,18 +1388,28 @@ export default function Home() {
           }
 
           .top-right {
-            position: absolute;
-            top: 100%;
-            right: 16px;
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 56px);
+            right: 12px;
+            left: auto;
+            z-index: 200;
             flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+            min-width: 200px;
+            max-width: calc(100vw - 24px);
+            max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 72px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
             background: rgba(37, 99, 235, 0.98);
-            padding: 12px 16px;
+            padding: 8px 8px;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
             opacity: 0;
             pointer-events: none;
             transform: translateY(-8px);
-            transition: all 0.2s ease;
+            transition: opacity 0.2s ease, transform 0.2s ease;
           }
 
           .top-right.is-open {
@@ -1404,7 +1420,21 @@ export default function Home() {
 
           .top-right a {
             font-size: 14px;
-            padding: 6px 2px;
+            padding: 12px 14px;
+            border-radius: 8px;
+          }
+
+          .top-right a + a {
+            margin-top: 2px;
+          }
+
+          .top-right a:hover,
+          .top-right a:active {
+            background: rgba(255, 255, 255, 0.12);
+          }
+
+          .top-right a::after {
+            display: none;
           }
 
           .header {
