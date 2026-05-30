@@ -77,6 +77,7 @@ type SpeechRecognitionLike = {
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
 const data = proverbsData as BibleData;
+const prayersData = prayersJson as PrayersData;
 const expectedCounts = [
   33, 22, 35, 27, 23, 35, 27, 36, 18, 32, 31, 28, 25, 35, 33, 33, 28, 24, 29,
   30, 31, 29, 35, 34, 28, 28, 27, 28, 27, 33, 31,
@@ -84,6 +85,18 @@ const expectedCounts = [
 
 const doneKey = (chapter: number) => `proverbs_done_${chapter}`;
 const progressKey = (chapter: number) => `proverbs_progress_${chapter}`;
+
+const PRAYER_GRADE_KEY = "prayer_grade";
+const prayerChecksKey = (date: string, grade: PrayerGradeKey) =>
+  `prayer_checks_${date}_${grade}`;
+
+const getTodayKey = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 const normalizeKorean = (value: string) => {
   let text = value
@@ -180,6 +193,10 @@ export default function BibleReadingPage() {
   const [speechMessage, setSpeechMessage] = useState("");
   const [manualCanFinish, setManualCanFinish] = useState(false);
   const [completeVisible, setCompleteVisible] = useState(false);
+  const [prayerGrade, setPrayerGrade] = useState<PrayerGradeKey>("lower");
+  const [prayerDate, setPrayerDate] = useState<string>(() => getTodayKey());
+  const [prayerChecks, setPrayerChecks] = useState<Set<number>>(new Set());
+  const [openPrayer, setOpenPrayer] = useState<number | null>(null);
 
   const listeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
