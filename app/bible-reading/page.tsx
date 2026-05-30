@@ -117,20 +117,27 @@ const normalizeKorean = (value: string) => {
 const consumeMatch = (source: string, target: string) => {
   if (!source || !target) return null;
 
-  if (target.length <= 2) {
-    if (source.startsWith(target)) {
-      return source.slice(target.length);
-    }
-    return null;
-  }
-
   if (source.startsWith(target)) {
     return source.slice(target.length);
   }
 
-  const headLength = Math.max(2, Math.ceil(target.length * 0.6));
+  if (target.length <= 1) {
+    return null;
+  }
+
+  // Allow consuming when the first ~50% of the target appears at the
+  // beginning of the source. Forgiving for kids' pronunciation gaps.
+  const headLength = Math.max(1, Math.floor(target.length * 0.5));
   if (headLength < target.length && source.startsWith(target.slice(0, headLength))) {
     return source.slice(headLength);
+  }
+
+  // Allow a single mismatched first syllable when the rest matches.
+  if (target.length >= 3 && source.length >= target.length - 1) {
+    const tail = target.slice(1);
+    if (source.slice(1).startsWith(tail)) {
+      return source.slice(target.length);
+    }
   }
 
   return null;
@@ -140,23 +147,34 @@ const isLooseMatch = (spoken: string, target: string) => {
   if (!spoken || !target) return false;
   if (spoken === target) return true;
 
-  if (target.length <= 2 || spoken.length <= 2) {
-    return spoken === target;
-  }
-
   if (spoken.startsWith(target) || target.startsWith(spoken)) {
     return true;
   }
 
-  const minLength = Math.max(2, Math.ceil(Math.min(spoken.length, target.length) * 0.6));
-  let matched = 0;
+  if (target.length <= 1 || spoken.length <= 1) {
+    return spoken[0] === target[0];
+  }
 
+  if (target.includes(spoken) || spoken.includes(target)) {
+    return true;
+  }
+
+  // Count syllables that match at the head; accept >=50% (min 1).
+  let matched = 0;
   for (let i = 0; i < Math.min(spoken.length, target.length); i += 1) {
     if (spoken[i] !== target[i]) break;
     matched += 1;
   }
 
-  return matched >= minLength;
+  const minLength = Math.max(1, Math.floor(Math.min(spoken.length, target.length) * 0.5));
+  if (matched >= minLength) return true;
+
+  // Last resort: overlap of 2+ characters anywhere in the head/tail boundary.
+  if (target.length >= 3 && spoken.length >= 3) {
+    if (spoken.slice(0, 2) === target.slice(0, 2)) return true;
+  }
+
+  return false;
 };
 
 const getSpeechRecognition = (): SpeechRecognitionConstructor | null => {
@@ -241,7 +259,7 @@ export default function BibleReadingPage() {
     recognitionRef.current?.abort();
   }, []);
 
-  const finishThreshold = totalWords > 0 ? Math.max(1, Math.floor(totalWords * 0.9)) : 0;
+  const finishThreshold = totalWords > 0 ? Math.max(1, Math.floor(totalWords * 0.8)) : 0;
 
   const markComplete = useCallback(() => {
     if (!hasFilledText) return;
@@ -307,10 +325,10 @@ export default function BibleReadingPage() {
           return;
         }
 
-        if (spoken.length < 3) return;
+        if (spoken.length < 2) return;
 
-        // Allow skipping 1-2 missed words but never across duplicates.
-        for (let offset = 1; offset <= 2; offset += 1) {
+        // Allow skipping up to 3 missed words but never across duplicates.
+        for (let offset = 1; offset <= 3; offset += 1) {
           const candidate = words[nextIndex + offset];
           if (!candidate) break;
           if (!canJumpTo(nextIndex + offset)) break;
@@ -327,7 +345,7 @@ export default function BibleReadingPage() {
       // matches, slide one character forward to skip past content that was
       // already read (or recognition noise).
       let safety = 0;
-      while (spokenStream && safety < 400 && nextIndex < words.length) {
+      while (spokenStream && safety < 600 && nextIndex < words.length) {
         const current = words[nextIndex];
         if (!current) break;
 
@@ -340,10 +358,10 @@ export default function BibleReadingPage() {
         }
 
         let jumped = false;
-        for (let offset = 1; offset <= 2; offset += 1) {
+        for (let offset = 1; offset <= 3; offset += 1) {
           const candidate = words[nextIndex + offset];
           if (!candidate || !canJumpTo(nextIndex + offset)) break;
-          if (candidate.normalized.length < 2) continue;
+          if (candidate.normalized.length < 1) continue;
 
           const skipped = consumeMatch(spokenStream, candidate.normalized);
           if (skipped !== null) {
@@ -386,12 +404,24 @@ export default function BibleReadingPage() {
     recognition.lang = "ko-KR";
     recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
     recognition.onresult = (event) => {
-      let transcript = "";
+      // Concatenate the best alternative of each chunk, then run the matcher
+      // again with the secondary alternatives merged in. This gives the loose
+      // matcher more chances to catch syllables the primary guess missed.
+      let primary = "";
+      let merged = "";
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        transcript += event.results[i][0].transcript;
+        const result = event.results[i];
+        primary += result[0].transcript;
+        for (let alt = 0; alt < Math.min(result.length, 3); alt += 1) {
+          merged += " " + result[alt].transcript;
+        }
       }
-      processTranscript(transcript);
+      processTranscript(primary);
+      if (merged.trim() && merged.trim() !== primary.trim()) {
+        processTranscript(merged);
+      }
     };
     recognition.onerror = async (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
@@ -572,7 +602,9 @@ export default function BibleReadingPage() {
           <a href="/bible-reading" aria-current="page">
             성경읽기
           </a>
-          <a href="/#contact">문의</a>
+          <a className="brp-nav-contact" href="/#contact">
+            문의
+          </a>
         </nav>
       </header>
 
@@ -1177,19 +1209,297 @@ export default function BibleReadingPage() {
         }
 
         .brp-prayer {
-          margin-top: 58px;
+          margin-top: 64px;
+          padding-top: 42px;
+          border-top: 1px solid rgba(26, 26, 26, 0.1);
         }
 
-        .brp-prayer-card {
-          border: 1px dashed rgba(26, 26, 26, 0.18);
-          background: rgba(255, 255, 255, 0.46);
-          padding: 32px;
-          color: rgba(26, 26, 26, 0.62);
+        .brp-prayer-header {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 24px;
+          margin-bottom: 20px;
         }
 
-        .brp-prayer-card p {
+        .brp-prayer-heading h2 {
+          margin: 0;
+        }
+
+        .brp-prayer-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
           margin: 10px 0 0;
-          line-height: 1.7;
+          font-size: 13px;
+          color: rgba(26, 26, 26, 0.5);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .brp-prayer-divider {
+          color: rgba(26, 26, 26, 0.28);
+        }
+
+        .brp-prayer-count {
+          color: rgba(26, 26, 26, 0.72);
+          font-weight: 600;
+        }
+
+        .brp-prayer-toggle {
+          display: inline-flex;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(26, 26, 26, 0.1);
+          border-radius: 999px;
+          padding: 4px;
+          flex-shrink: 0;
+        }
+
+        .brp-prayer-toggle button {
+          border: 0;
+          cursor: pointer;
+          font: inherit;
+          padding: 8px 14px;
+          border-radius: 999px;
+          background: transparent;
+          color: rgba(26, 26, 26, 0.58);
+          font-size: 13px;
+          letter-spacing: -0.01em;
+        }
+
+        .brp-prayer-toggle button.is-active {
+          background: #1a1a1a;
+          color: #f7f6f3;
+        }
+
+        .brp-prayer-bar {
+          height: 2px;
+          background: rgba(26, 26, 26, 0.08);
+          margin-bottom: 22px;
+        }
+
+        .brp-prayer-bar span {
+          display: block;
+          height: 100%;
+          background: #1a1a1a;
+          transition: width 0.3s ease;
+        }
+
+        .brp-prayer-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: grid;
+          gap: 10px;
+        }
+
+        .brp-prayer-item {
+          background: rgba(255, 255, 255, 0.62);
+          border: 1px solid rgba(26, 26, 26, 0.1);
+          transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .brp-prayer-item.is-open {
+          background: #ffffff;
+          border-color: rgba(26, 26, 26, 0.22);
+        }
+
+        .brp-prayer-item.is-done .brp-prayer-no {
+          color: rgba(26, 26, 26, 0.32);
+          text-decoration: line-through;
+        }
+
+        .brp-prayer-item.is-done .brp-prayer-theme {
+          color: rgba(26, 26, 26, 0.52);
+        }
+
+        .brp-prayer-trigger {
+          all: unset;
+          box-sizing: border-box;
+          display: grid;
+          grid-template-columns: 44px 1fr 28px;
+          align-items: center;
+          gap: 14px;
+          width: 100%;
+          padding: 18px 22px;
+          cursor: pointer;
+          font-size: 17px;
+        }
+
+        .brp-prayer-trigger:focus-visible {
+          outline: 2px solid #1a1a1a;
+          outline-offset: 2px;
+        }
+
+        .brp-prayer-no {
+          font-size: 13px;
+          letter-spacing: 0.12em;
+          color: rgba(26, 26, 26, 0.42);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .brp-prayer-theme {
+          font-weight: 500;
+          color: #1a1a1a;
+          letter-spacing: -0.01em;
+        }
+
+        .brp-prayer-mark {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          border: 1px solid rgba(26, 26, 26, 0.18);
+          color: rgba(26, 26, 26, 0.52);
+          background: transparent;
+        }
+
+        .brp-prayer-item.is-done .brp-prayer-mark {
+          background: #1a1a1a;
+          border-color: #1a1a1a;
+          color: #f7f6f3;
+        }
+
+        .brp-prayer-mark-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(26, 26, 26, 0.22);
+        }
+
+        .brp-prayer-body {
+          padding: 4px 22px 24px;
+          border-top: 1px solid rgba(26, 26, 26, 0.06);
+          display: grid;
+          gap: 22px;
+        }
+
+        .brp-prayer-verse {
+          margin: 18px 0 0;
+          padding: 0 0 0 16px;
+          border-left: 2px solid rgba(26, 26, 26, 0.5);
+          color: #1a1a1a;
+        }
+
+        .brp-prayer-verse p {
+          margin: 0;
+          font-size: 16px;
+          line-height: 1.85;
+          letter-spacing: -0.005em;
+          word-break: keep-all;
+        }
+
+        .brp-prayer-verse cite {
+          display: block;
+          margin-top: 8px;
+          font-style: normal;
+          font-size: 12px;
+          letter-spacing: 0.04em;
+          color: rgba(26, 26, 26, 0.5);
+        }
+
+        .brp-prayer-section {
+          display: grid;
+          gap: 8px;
+        }
+
+        .brp-prayer-label {
+          margin: 0;
+          font-size: 11px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: rgba(26, 26, 26, 0.46);
+        }
+
+        .brp-prayer-think,
+        .brp-prayer-text {
+          margin: 0;
+          color: #1a1a1a;
+          font-size: 15.5px;
+          line-height: 1.9;
+          word-break: keep-all;
+        }
+
+        .brp-prayer-text {
+          white-space: pre-line;
+        }
+
+        .brp-prayer-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .brp-prayer-check,
+        .brp-prayer-next,
+        .brp-prayer-reset {
+          border: 0;
+          cursor: pointer;
+          font: inherit;
+          border-radius: 999px;
+          padding: 11px 18px;
+          font-size: 14px;
+          white-space: nowrap;
+        }
+
+        .brp-prayer-check {
+          background: #1a1a1a;
+          color: #f7f6f3;
+        }
+
+        .brp-prayer-check.is-done {
+          background: transparent;
+          color: rgba(26, 26, 26, 0.7);
+          border: 1px solid rgba(26, 26, 26, 0.18);
+        }
+
+        .brp-prayer-next {
+          background: transparent;
+          color: rgba(26, 26, 26, 0.72);
+          border: 1px solid rgba(26, 26, 26, 0.18);
+        }
+
+        .brp-prayer-next:hover,
+        .brp-prayer-check.is-done:hover {
+          background: rgba(26, 26, 26, 0.05);
+          color: #1a1a1a;
+        }
+
+        .brp-prayer-lords {
+          margin-top: 28px;
+          padding: 26px 24px;
+          background: rgba(26, 26, 26, 0.04);
+          border-left: 2px solid rgba(26, 26, 26, 0.5);
+        }
+
+        .brp-prayer-lords p:last-child {
+          margin: 12px 0 0;
+          color: #1a1a1a;
+          font-size: 15.5px;
+          line-height: 1.95;
+          word-break: keep-all;
+        }
+
+        .brp-prayer-foot {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 18px;
+        }
+
+        .brp-prayer-reset {
+          background: transparent;
+          color: rgba(26, 26, 26, 0.6);
+          border: 1px solid rgba(26, 26, 26, 0.16);
+          font-size: 13px;
+          padding: 9px 14px;
+        }
+
+        .brp-prayer-reset:hover {
+          color: #1a1a1a;
+          background: rgba(26, 26, 26, 0.05);
         }
 
         .brp-dock {
@@ -1337,7 +1647,7 @@ export default function BibleReadingPage() {
           .brp-page {
             padding-left: 16px;
             padding-right: 16px;
-            padding-bottom: 132px;
+            padding-bottom: 188px;
           }
 
           .brp-header {
@@ -1352,8 +1662,12 @@ export default function BibleReadingPage() {
 
           .brp-nav {
             width: 100%;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 10px;
+          }
+
+          .brp-nav-contact {
+            display: none;
           }
 
           .brp-toolbar,
@@ -1415,6 +1729,63 @@ export default function BibleReadingPage() {
 
           .brp-grid {
             grid-template-columns: repeat(6, 1fr);
+          }
+
+          .brp-prayer {
+            margin-top: 42px;
+            padding-top: 28px;
+          }
+
+          .brp-prayer-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+          }
+
+          .brp-prayer-toggle {
+            align-self: stretch;
+            justify-content: center;
+          }
+
+          .brp-prayer-toggle button {
+            flex: 1;
+            text-align: center;
+          }
+
+          .brp-prayer-trigger {
+            grid-template-columns: 36px 1fr 26px;
+            gap: 10px;
+            padding: 14px 16px;
+            font-size: 16px;
+          }
+
+          .brp-prayer-body {
+            padding: 4px 16px 20px;
+            gap: 18px;
+          }
+
+          .brp-prayer-verse p,
+          .brp-prayer-think,
+          .brp-prayer-text,
+          .brp-prayer-lords p:last-child {
+            font-size: 15px;
+            line-height: 1.85;
+          }
+
+          .brp-prayer-lords {
+            padding: 20px 18px;
+          }
+
+          .brp-prayer-actions {
+            flex-direction: column-reverse;
+            align-items: stretch;
+          }
+
+          .brp-prayer-check,
+          .brp-prayer-next {
+            width: 100%;
+            text-align: center;
+            padding: 12px 14px;
           }
 
           .brp-dock {
