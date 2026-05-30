@@ -2,8 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import proverbsData from "./proverbs.json";
+import prayersJson from "./prayers.json";
 
 type TranslationKey = "krv" | "kids";
+
+type PrayerGradeKey = "lower" | "upper";
+
+type PrayerEntry = {
+  no: number;
+  theme: string;
+  verse: string;
+  ref: string;
+  think: string;
+  pray: string;
+};
+
+type PrayerCardData = {
+  grade: PrayerGradeKey;
+  title: string;
+  prayers: PrayerEntry[];
+  lordsPrayer: string;
+};
+
+type PrayersData = Record<PrayerGradeKey, PrayerCardData>;
 
 type Verse = {
   n: number;
