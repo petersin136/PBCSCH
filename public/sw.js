@@ -7,9 +7,58 @@
  *  - network-first      : 페이지 HTML 문서 (오프라인 대비 캐시 fallback)
  *  - stale-while-revalidate : 기타 동일 출처 GET
  *  - network-only       : /api/*, supabase 통신, 진도/학생 데이터 (항상 최신)
+ *
+ * localhost / 127.0.0.1 등 개발 환경에서는 SW 자체를 사용하지 않는다.
+ * (dev 서버가 /_next/static/* 청크에 ?v=<timestamp>를 매 빌드마다 새로 발급
+ *  → SW가 캐시한 옛 URL을 fetch하면 ERR_FAILED)
+ * 또한 이미 등록되어 망가져 있는 옛 SW를 만나도 다음 새로고침 한 번에
+ * 자가 폐기되도록 install 시 모든 캐시를 비우고 unregister 한다.
  */
 
-const CACHE_VERSION = "v1.0.1";
+const isDevHost =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1" ||
+  self.location.hostname.endsWith(".local");
+
+if (isDevHost) {
+  self.addEventListener("install", (event) => {
+    event.waitUntil(self.skipWaiting());
+  });
+
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(
+      (async () => {
+        try {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        } catch (e) {
+          // ignore
+        }
+        try {
+          await self.registration.unregister();
+        } catch (e) {
+          // ignore
+        }
+        try {
+          const clients = await self.clients.matchAll({ type: "window" });
+          clients.forEach((client) => {
+            try {
+              client.navigate(client.url);
+            } catch (e) {
+              // ignore
+            }
+          });
+        } catch (e) {
+          // ignore
+        }
+      })(),
+    );
+  });
+
+  // fetch listener를 등록하지 않음 → 모든 요청은 SW를 우회하여 네트워크 직행
+} else {
+
+const CACHE_VERSION = "v1.0.2";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME_STATIC = `static-${CACHE_VERSION}`;
 const RUNTIME_PAGES = `pages-${CACHE_VERSION}`;
@@ -172,6 +221,17 @@ self.addEventListener("fetch", (event) => {
     return; // SW 개입 없음 → 브라우저 기본 네트워크 동작
   }
 
+  // Next.js dev 서버는 /_next/static/* 청크에 ?v=<timestamp> 쿼리를 붙여
+  // 매 빌드마다 새 URL을 발급한다. 옛 쿼리스트링이 캐시된 HTML에 박혀 있으면
+  // 그 URL은 새 dev 서버에서 404 → ERR_FAILED. dev 환경에서는 SW 개입을 끈다.
+  if (
+    url.origin === self.location.origin &&
+    url.pathname.startsWith("/_next/") &&
+    url.search
+  ) {
+    return;
+  }
+
   // 동일 출처가 아니면 (구글 폰트 등) stale-while-revalidate
   if (url.origin !== self.location.origin) {
     event.respondWith(staleWhileRevalidate(request, RUNTIME_OTHER));
@@ -190,3 +250,5 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(staleWhileRevalidate(request, RUNTIME_OTHER));
 });
+
+} // end of production-only block

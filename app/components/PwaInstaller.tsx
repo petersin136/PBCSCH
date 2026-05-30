@@ -48,15 +48,30 @@ export default function PwaInstaller() {
       return;
     }
 
-    // 서비스 워커 등록
+    // 서비스 워커: 개발 모드에서는 등록하지 않고 기존 등록분과 캐시도 정리한다.
+    // (dev 서버는 매 빌드마다 /_next/static/* 청크의 쿼리스트링이 바뀌어
+    //  SW가 캐시한 옛 URL을 fetch하다 ERR_FAILED가 발생하기 때문)
     if ("serviceWorker" in navigator) {
-      const onLoad = () => {
+      if (process.env.NODE_ENV !== "production") {
         navigator.serviceWorker
-          .register("/sw.js", { scope: "/" })
+          .getRegistrations()
+          .then((regs) => Promise.all(regs.map((r) => r.unregister())))
           .catch(() => undefined);
-      };
-      if (document.readyState === "complete") onLoad();
-      else window.addEventListener("load", onLoad, { once: true });
+        if (typeof caches !== "undefined") {
+          caches
+            .keys()
+            .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+            .catch(() => undefined);
+        }
+      } else {
+        const onLoad = () => {
+          navigator.serviceWorker
+            .register("/sw.js", { scope: "/" })
+            .catch(() => undefined);
+        };
+        if (document.readyState === "complete") onLoad();
+        else window.addEventListener("load", onLoad, { once: true });
+      }
     }
 
     // 최근 닫음 처리

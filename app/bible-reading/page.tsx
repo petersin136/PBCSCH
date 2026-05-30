@@ -50,8 +50,9 @@ type WordToken = {
 };
 
 type SpeechRecognitionResultLike = {
-  0: { transcript: string };
+  length: number;
   isFinal: boolean;
+  [index: number]: { transcript: string };
 };
 
 type SpeechRecognitionEventLike = {
@@ -66,6 +67,7 @@ type SpeechRecognitionLike = {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
+  maxAlternatives?: number;
   start: () => void;
   stop: () => void;
   abort: () => void;
@@ -1645,25 +1647,53 @@ export default function BibleReadingPage() {
 
         @media (max-width: 760px) {
           .brp-page {
-            padding-left: 16px;
-            padding-right: 16px;
+            padding-top: 60px;
+            padding-left: 10px;
+            padding-right: 10px;
             padding-bottom: 188px;
           }
 
           .brp-header {
-            align-items: flex-start;
-            flex-direction: column;
-            gap: 10px;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+          }
+
+          .brp-brand {
+            gap: 8px;
+            font-size: 12.5px;
+            font-weight: 500;
+            min-width: 0;
+            flex: 1;
+          }
+
+          .brp-brand span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .brp-logo {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
           }
 
           .brp-progress {
-            top: 94px;
+            top: 47px;
           }
 
           .brp-nav {
-            width: 100%;
-            justify-content: flex-start;
-            gap: 10px;
+            width: auto;
+            justify-content: flex-end;
+            gap: 12px;
+            font-size: 13px;
+            flex-shrink: 0;
+          }
+
+          .brp-nav a[aria-current="page"] {
+            text-underline-offset: 4px;
           }
 
           .brp-nav-contact {
@@ -1681,18 +1711,28 @@ export default function BibleReadingPage() {
           }
 
           .brp-hero {
-            margin-top: 30px;
-            margin-bottom: 30px;
+            margin-top: 16px;
+            margin-bottom: 22px;
+          }
+
+          .brp-eyebrow,
+          .brp-section-label {
+            margin-bottom: 8px;
+            font-size: 10.5px;
+            letter-spacing: 0.16em;
           }
 
           .brp-hero h1 {
-            font-size: clamp(38px, 13vw, 56px);
+            font-size: clamp(28px, 8.4vw, 38px);
+            letter-spacing: -0.04em;
+            line-height: 1.15;
           }
 
           .brp-hero p:last-child {
-            max-width: 310px;
-            font-size: 15px;
-            line-height: 1.75;
+            max-width: 320px;
+            margin-top: 14px;
+            font-size: 13.5px;
+            line-height: 1.7;
           }
 
           .brp-translation,
@@ -1716,15 +1756,16 @@ export default function BibleReadingPage() {
           }
 
           .brp-reader {
-            padding: 22px 16px;
+            padding: 18px 12px;
+            border-radius: 14px;
           }
 
           .brp-verse {
-            grid-template-columns: 1.8em minmax(0, 1fr);
-            column-gap: 12px;
-            margin-bottom: 20px;
-            font-size: 17px;
-            line-height: 1.85;
+            grid-template-columns: 1.6em minmax(0, 1fr);
+            column-gap: 10px;
+            margin-bottom: 18px;
+            font-size: 16.5px;
+            line-height: 1.8;
           }
 
           .brp-grid {
@@ -1789,20 +1830,63 @@ export default function BibleReadingPage() {
           }
 
           .brp-dock {
-            width: calc(100% - 24px);
-            justify-content: space-between;
+            width: calc(100% - 16px);
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 6px;
+            padding: 8px 10px;
+            border-radius: 22px;
             bottom: 12px;
+          }
+
+          .brp-count {
+            order: -1;
+            flex-basis: 100%;
+            text-align: center;
+            font-size: 12px;
+            padding: 2px 0 0;
           }
 
           .brp-mic,
           .brp-manual {
-            padding: 10px 12px;
-            font-size: 13px;
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+            padding: 10px 8px;
+            font-size: 12.5px;
+            gap: 6px;
           }
 
-          .brp-count {
+          .brp-reset {
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+            padding: 10px 8px;
             font-size: 12px;
+          }
+
+          .brp-mic span {
+            width: 6px;
+            height: 6px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .brp-dock {
+            gap: 4px;
+            padding: 7px 8px;
+          }
+
+          .brp-mic,
+          .brp-manual,
+          .brp-reset {
+            padding: 9px 6px;
+            font-size: 11.5px;
+            letter-spacing: -0.02em;
+          }
+
+          .brp-mic {
+            gap: 4px;
           }
         }
       `}</style>
