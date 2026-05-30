@@ -193,6 +193,103 @@ const getSpeechRecognition = (): SpeechRecognitionConstructor | null => {
   return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
 };
 
+const advanceReadIndex = (
+  transcript: string,
+  words: WordToken[],
+  startIndex: number,
+): number => {
+  if (words.length === 0) return startIndex;
+
+  const spokenWords = transcript
+    .split(/\s+/)
+    .map(normalizeKorean)
+    .filter(Boolean);
+  let spokenStream = spokenWords.join("");
+
+  const skipEmpty = (idx: number) => {
+    let i = idx;
+    while (i < words.length && words[i] && words[i].normalized === "") {
+      i += 1;
+    }
+    return i;
+  };
+
+  let nextIndex = skipEmpty(startIndex);
+
+  const canJumpTo = (toIndex: number) => {
+    if (toIndex <= nextIndex) return false;
+    const seen = new Set<string>();
+    for (let i = nextIndex; i <= toIndex; i += 1) {
+      const w = words[i];
+      if (!w) return false;
+      if (w.normalized === "") continue;
+      if (seen.has(w.normalized)) return false;
+      seen.add(w.normalized);
+    }
+    return true;
+  };
+
+  spokenWords.forEach((spoken) => {
+    nextIndex = skipEmpty(nextIndex);
+    const current = words[nextIndex];
+    if (current && isLooseMatch(spoken, current.normalized)) {
+      nextIndex = skipEmpty(nextIndex + 1);
+      return;
+    }
+
+    if (spoken.length < 2) return;
+
+    for (let offset = 1; offset <= 3; offset += 1) {
+      const candidate = words[nextIndex + offset];
+      if (!candidate) break;
+      if (!canJumpTo(nextIndex + offset)) break;
+      if (isLooseMatch(spoken, candidate.normalized)) {
+        nextIndex = skipEmpty(nextIndex + offset + 1);
+        return;
+      }
+    }
+  });
+
+  let safety = 0;
+  while (spokenStream && safety < 600 && nextIndex < words.length) {
+    nextIndex = skipEmpty(nextIndex);
+    if (nextIndex >= words.length) break;
+    const current = words[nextIndex];
+    if (!current) break;
+
+    const remaining = consumeMatch(spokenStream, current.normalized);
+    if (remaining !== null) {
+      spokenStream = remaining;
+      nextIndex = skipEmpty(nextIndex + 1);
+      safety += 1;
+      continue;
+    }
+
+    let jumped = false;
+    for (let offset = 1; offset <= 3; offset += 1) {
+      const candidate = words[nextIndex + offset];
+      if (!candidate || !canJumpTo(nextIndex + offset)) break;
+      if (candidate.normalized.length < 1) continue;
+
+      const skipped = consumeMatch(spokenStream, candidate.normalized);
+      if (skipped !== null) {
+        spokenStream = skipped;
+        nextIndex = skipEmpty(nextIndex + offset + 1);
+        safety += 1;
+        jumped = true;
+        break;
+      }
+    }
+
+    if (!jumped) {
+      spokenStream = spokenStream.slice(1);
+      safety += 1;
+    }
+  }
+
+  return skipEmpty(nextIndex);
+};
+
 const getMicrophonePermissionState = async () => {
   if (typeof navigator === "undefined" || !navigator.permissions?.query) {
     return "unknown";
@@ -221,12 +318,18 @@ export default function BibleReadingPage() {
   const [prayerDate, setPrayerDate] = useState<string>(() => getTodayKey());
   const [prayerChecks, setPrayerChecks] = useState<Set<number>>(new Set());
   const [openPrayer, setOpenPrayer] = useState<number | null>(null);
+  const [prayerListeningNo, setPrayerListeningNo] = useState<number | null>(null);
+  const [prayerReadCounts, setPrayerReadCounts] = useState<Record<number, number>>({});
+  const [prayerSpeechMessage, setPrayerSpeechMessage] = useState("");
 
   const listeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const readCountRef = useRef(0);
   const minReadTimeRef = useRef(0);
   const reachedBottomRef = useRef(false);
+  const prayerListeningRef = useRef<number | null>(null);
+  const prayerRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const prayerReadCountRefs = useRef<Record<number, number>>({});
 
   const chapter = data.chapters.find((item) => item.chapter === chapterNumber) ?? data.chapters[0];
   const verses = chapter.verses[translation];
@@ -303,104 +406,7 @@ export default function BibleReadingPage() {
   const processTranscript = useCallback(
     (transcript: string) => {
       if (!hasFilledText) return;
-
-      const spokenWords = transcript
-        .split(/\s+/)
-        .map(normalizeKorean)
-        .filter(Boolean);
-      let spokenStream = spokenWords.join("");
-
-      // 정규화 결과가 빈 문자열인 단어(예: "이는"가 모든 조사 제거 후 "" 가
-      // 되는 등의 극단 케이스)는 매칭이 불가능하므로 자동으로 건너뛴다.
-      const skipEmpty = (idx: number) => {
-        let i = idx;
-        while (i < words.length && words[i] && words[i].normalized === "") {
-          i += 1;
-        }
-        return i;
-      };
-
-      let nextIndex = skipEmpty(readCountRef.current);
-
-      const canJumpTo = (toIndex: number) => {
-        if (toIndex <= nextIndex) return false;
-        const seen = new Set<string>();
-        for (let i = nextIndex; i <= toIndex; i += 1) {
-          const w = words[i];
-          if (!w) return false;
-          if (w.normalized === "") continue;
-          if (seen.has(w.normalized)) return false;
-          seen.add(w.normalized);
-        }
-        return true;
-      };
-
-      spokenWords.forEach((spoken) => {
-        nextIndex = skipEmpty(nextIndex);
-        const current = words[nextIndex];
-        if (current && isLooseMatch(spoken, current.normalized)) {
-          nextIndex = skipEmpty(nextIndex + 1);
-          return;
-        }
-
-        if (spoken.length < 2) return;
-
-        // Allow skipping up to 3 missed words but never across duplicates.
-        for (let offset = 1; offset <= 3; offset += 1) {
-          const candidate = words[nextIndex + offset];
-          if (!candidate) break;
-          if (!canJumpTo(nextIndex + offset)) break;
-          if (isLooseMatch(spoken, candidate.normalized)) {
-            nextIndex = skipEmpty(nextIndex + offset + 1);
-            return;
-          }
-        }
-      });
-
-      // Korean speech recognition often returns the whole utterance, including
-      // already-recognized verses, as a single growing string. Consume the
-      // syllable stream from the current reading position, and when nothing
-      // matches, slide one character forward to skip past content that was
-      // already read (or recognition noise).
-      let safety = 0;
-      while (spokenStream && safety < 600 && nextIndex < words.length) {
-        nextIndex = skipEmpty(nextIndex);
-        if (nextIndex >= words.length) break;
-        const current = words[nextIndex];
-        if (!current) break;
-
-        const remaining = consumeMatch(spokenStream, current.normalized);
-        if (remaining !== null) {
-          spokenStream = remaining;
-          nextIndex = skipEmpty(nextIndex + 1);
-          safety += 1;
-          continue;
-        }
-
-        let jumped = false;
-        for (let offset = 1; offset <= 3; offset += 1) {
-          const candidate = words[nextIndex + offset];
-          if (!candidate || !canJumpTo(nextIndex + offset)) break;
-          if (candidate.normalized.length < 1) continue;
-
-          const skipped = consumeMatch(spokenStream, candidate.normalized);
-          if (skipped !== null) {
-            spokenStream = skipped;
-            nextIndex = skipEmpty(nextIndex + offset + 1);
-            safety += 1;
-            jumped = true;
-            break;
-          }
-        }
-
-        if (!jumped) {
-          spokenStream = spokenStream.slice(1);
-          safety += 1;
-        }
-      }
-
-      nextIndex = skipEmpty(nextIndex);
-
+      const nextIndex = advanceReadIndex(transcript, words, readCountRef.current);
       if (nextIndex !== readCountRef.current) {
         readCountRef.current = nextIndex;
         setReadCount(nextIndex);
@@ -420,6 +426,12 @@ export default function BibleReadingPage() {
     if (!Recognition) {
       setSpeechMessage("이 브라우저는 음성인식을 지원하지 않아 스크롤 백업을 사용해 주세요.");
       return;
+    }
+
+    if (prayerListeningRef.current !== null) {
+      prayerListeningRef.current = null;
+      setPrayerListeningNo(null);
+      prayerRecognitionRef.current?.abort();
     }
 
     const recognition = new Recognition();
@@ -586,6 +598,171 @@ export default function BibleReadingPage() {
   const prayerDone = prayerChecks.size;
   const prayerAllDone = prayerTotal > 0 && prayerDone >= prayerTotal;
   const prayerPercent = prayerTotal > 0 ? (prayerDone / prayerTotal) * 100 : 0;
+
+  const prayerWordsByNo = useMemo(() => {
+    const map: Record<number, WordToken[]> = {};
+    prayerCard.prayers.forEach((p) => {
+      map[p.no] = p.pray
+        .split(/\s+/)
+        .map((w) => w.trim())
+        .filter(Boolean)
+        .map((word, index) => ({
+          id: `prayer-${prayerGrade}-${p.no}-${index}`,
+          verse: p.no,
+          text: word,
+          normalized: normalizeKorean(word),
+        }));
+    });
+    return map;
+  }, [prayerCard, prayerGrade]);
+
+  const stopPrayerListening = useCallback(() => {
+    prayerListeningRef.current = null;
+    setPrayerListeningNo(null);
+    prayerRecognitionRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    setPrayerReadCounts({});
+    prayerReadCountRefs.current = {};
+    stopPrayerListening();
+  }, [prayerGrade, stopPrayerListening]);
+
+  useEffect(() => {
+    if (
+      prayerListeningRef.current !== null &&
+      prayerListeningRef.current !== openPrayer
+    ) {
+      stopPrayerListening();
+    }
+  }, [openPrayer, stopPrayerListening]);
+
+  const processPrayerTranscript = useCallback(
+    (no: number, transcript: string) => {
+      const words = prayerWordsByNo[no];
+      if (!words || words.length === 0) return;
+      const startIndex = prayerReadCountRefs.current[no] ?? 0;
+      const nextIndex = advanceReadIndex(transcript, words, startIndex);
+      if (nextIndex === startIndex) return;
+
+      prayerReadCountRefs.current[no] = nextIndex;
+      setPrayerReadCounts((prev) => ({ ...prev, [no]: nextIndex }));
+
+      const threshold = Math.max(1, Math.floor(words.length * 0.8));
+      if (nextIndex >= threshold) {
+        setPrayerChecks((prev) => {
+          if (prev.has(no)) return prev;
+          const next = new Set(prev);
+          next.add(no);
+          window.localStorage.setItem(
+            prayerChecksKey(prayerDate, prayerGrade),
+            JSON.stringify(Array.from(next).sort((a, b) => a - b)),
+          );
+          return next;
+        });
+      }
+    },
+    [prayerDate, prayerGrade, prayerWordsByNo],
+  );
+
+  const startPrayerListening = useCallback(
+    (no: number) => {
+      const Recognition = getSpeechRecognition();
+      if (!Recognition) {
+        setPrayerSpeechMessage("이 브라우저는 음성인식을 지원하지 않아 직접 체크해 주세요.");
+        return;
+      }
+
+      if (listeningRef.current) {
+        listeningRef.current = false;
+        setListening(false);
+        recognitionRef.current?.abort();
+      }
+
+      if (prayerListeningRef.current !== null) {
+        prayerListeningRef.current = null;
+        prayerRecognitionRef.current?.abort();
+      }
+
+      const recognition = new Recognition();
+      recognition.lang = "ko-KR";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 3;
+      recognition.onresult = (event) => {
+        const targetNo = prayerListeningRef.current;
+        if (targetNo == null) return;
+        let primary = "";
+        let merged = "";
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const result = event.results[i];
+          primary += result[0].transcript;
+          for (let alt = 0; alt < Math.min(result.length, 3); alt += 1) {
+            merged += " " + result[alt].transcript;
+          }
+        }
+        processPrayerTranscript(targetNo, primary);
+        if (merged.trim() && merged.trim() !== primary.trim()) {
+          processPrayerTranscript(targetNo, merged);
+        }
+      };
+      recognition.onerror = async (event) => {
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          const currentPermissionState = await getMicrophonePermissionState();
+          setPrayerSpeechMessage(
+            currentPermissionState === "denied"
+              ? "마이크 권한이 차단되어 있어요. 주소창 왼쪽 권한 설정에서 허용해 주세요."
+              : `Chrome 음성인식이 막혔어요. 새로고침 후 다시 눌러 주세요. (${event.error})`,
+          );
+          prayerListeningRef.current = null;
+          setPrayerListeningNo(null);
+          return;
+        }
+        if (event.error === "no-speech") {
+          setPrayerSpeechMessage("소리가 잘 들리지 않았어요. 조금 더 가까이에서 다시 읽어 주세요.");
+        }
+      };
+      recognition.onend = () => {
+        if (prayerListeningRef.current === no) {
+          window.setTimeout(() => {
+            if (prayerListeningRef.current !== no) return;
+            try {
+              recognition.start();
+            } catch {
+              setPrayerSpeechMessage("음성인식이 멈췄어요. 버튼을 다시 눌러 시작해 주세요.");
+              prayerListeningRef.current = null;
+              setPrayerListeningNo(null);
+            }
+          }, 250);
+        }
+      };
+
+      prayerRecognitionRef.current = recognition;
+      prayerListeningRef.current = no;
+      setPrayerListeningNo(no);
+      setPrayerSpeechMessage("듣고 있어요. 기도문을 천천히 따라 읽어 주세요.");
+      setOpenPrayer(no);
+
+      try {
+        recognition.start();
+      } catch {
+        setPrayerSpeechMessage("음성인식을 시작하지 못했어요. 잠시 후 다시 눌러 주세요.");
+        prayerListeningRef.current = null;
+        setPrayerListeningNo(null);
+      }
+    },
+    [processPrayerTranscript],
+  );
+
+  const resetPrayerProgress = useCallback((no: number) => {
+    prayerReadCountRefs.current[no] = 0;
+    setPrayerReadCounts((prev) => {
+      if (!prev[no]) return prev;
+      const next = { ...prev };
+      next[no] = 0;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -823,11 +1000,64 @@ export default function BibleReadingPage() {
                     </div>
 
                     <div className="brp-prayer-section">
-                      <p className="brp-prayer-label">따라서 기도해요</p>
-                      <p className="brp-prayer-text">{prayer.pray}</p>
+                      <div className="brp-prayer-text-head">
+                        <p className="brp-prayer-label">따라서 기도해요</p>
+                        {(() => {
+                          const totalPrayerWords = (prayerWordsByNo[prayer.no] ?? []).length;
+                          const readPrayerWords = prayerReadCounts[prayer.no] ?? 0;
+                          if (totalPrayerWords === 0) return null;
+                          return (
+                            <span className="brp-prayer-word-count">
+                              {readPrayerWords} / {totalPrayerWords} 단어
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      <div className="brp-prayer-text">
+                        {(() => {
+                          const readUpTo = prayerReadCounts[prayer.no] ?? 0;
+                          let globalIdx = 0;
+                          return prayer.pray.split("\n").map((line, lineIdx) => {
+                            const tokens = line.split(/\s+/).filter(Boolean);
+                            return (
+                              <div key={lineIdx} className="brp-prayer-text-line">
+                                {tokens.map((token, tokenIdx) => {
+                                  const idx = globalIdx;
+                                  globalIdx += 1;
+                                  return (
+                                    <span
+                                      key={tokenIdx}
+                                      className={`brp-prayer-word ${
+                                        idx < readUpTo ? "is-read" : ""
+                                      }`}
+                                    >
+                                      {token}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
                     </div>
 
                     <div className="brp-prayer-actions">
+                      <button
+                        type="button"
+                        className={`brp-prayer-mic ${
+                          prayerListeningNo === prayer.no ? "is-listening" : ""
+                        }`}
+                        onClick={() =>
+                          prayerListeningNo === prayer.no
+                            ? stopPrayerListening()
+                            : startPrayerListening(prayer.no)
+                        }
+                        disabled={!speechSupported}
+                      >
+                        <span className="brp-prayer-mic-dot" />
+                        {prayerListeningNo === prayer.no ? "듣는 중지" : "기도 따라하기"}
+                      </button>
                       <button
                         type="button"
                         className={`brp-prayer-check ${isDone ? "is-done" : ""}`}
@@ -835,6 +1065,15 @@ export default function BibleReadingPage() {
                       >
                         {isDone ? "체크 해제" : "이 기도 마쳤어요"}
                       </button>
+                      {(prayerReadCounts[prayer.no] ?? 0) > 0 && (
+                        <button
+                          type="button"
+                          className="brp-prayer-restart"
+                          onClick={() => resetPrayerProgress(prayer.no)}
+                        >
+                          처음부터
+                        </button>
+                      )}
                       {prayer.no < prayerTotal && (
                         <button
                           type="button"
@@ -901,7 +1140,12 @@ export default function BibleReadingPage() {
         </button>
       </div>
 
-      {speechMessage && <p className="brp-speech-message">{speechMessage}</p>}
+      {(() => {
+        const showPrayer = prayerListeningNo !== null || (prayerSpeechMessage && !speechMessage);
+        const msg = showPrayer ? prayerSpeechMessage : speechMessage;
+        if (!msg) return null;
+        return <p className="brp-speech-message">{msg}</p>;
+      })()}
 
       {completeVisible && (
         <div className="brp-complete" role="dialog" aria-modal="true">
@@ -1788,19 +2032,49 @@ export default function BibleReadingPage() {
             line-height: 1.8;
           }
 
+          .brp-progress-grid {
+            margin-top: 36px;
+            padding: 22px 16px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(26, 26, 26, 0.08);
+            border-radius: 14px;
+            border-top: 1px solid rgba(26, 26, 26, 0.08);
+            gap: 18px;
+          }
+
+          .brp-progress-grid h2,
+          .brp-prayer h2 {
+            font-size: 19px;
+          }
+
           .brp-grid {
             grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            row-gap: 14px;
+          }
+
+          .brp-grid button {
+            font-size: 14px;
           }
 
           .brp-prayer {
-            margin-top: 42px;
-            padding-top: 28px;
+            margin-top: 28px;
+            padding: 22px 16px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(26, 26, 26, 0.08);
+            border-radius: 14px;
+            border-top: 1px solid rgba(26, 26, 26, 0.08);
           }
 
           .brp-prayer-header {
             flex-direction: column;
             align-items: flex-start;
             gap: 14px;
+            margin-bottom: 16px;
+          }
+
+          .brp-prayer-bar {
+            margin-bottom: 18px;
           }
 
           .brp-prayer-toggle {
@@ -1813,15 +2087,23 @@ export default function BibleReadingPage() {
             text-align: center;
           }
 
+          .brp-prayer-list {
+            gap: 12px;
+          }
+
+          .brp-prayer-item {
+            border-radius: 12px;
+          }
+
           .brp-prayer-trigger {
-            grid-template-columns: 36px 1fr 26px;
+            grid-template-columns: 32px 1fr 26px;
             gap: 10px;
-            padding: 14px 16px;
-            font-size: 16px;
+            padding: 14px 14px;
+            font-size: 15.5px;
           }
 
           .brp-prayer-body {
-            padding: 4px 16px 20px;
+            padding: 4px 14px 18px;
             gap: 18px;
           }
 
