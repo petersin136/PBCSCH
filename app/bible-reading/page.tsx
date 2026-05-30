@@ -476,6 +476,66 @@ export default function BibleReadingPage() {
   }, [markComplete, readCount, totalWords]);
 
   useEffect(() => {
+    const savedGrade = window.localStorage.getItem(PRAYER_GRADE_KEY);
+    if (savedGrade === "lower" || savedGrade === "upper") {
+      setPrayerGrade(savedGrade);
+    }
+  }, []);
+
+  useEffect(() => {
+    const today = getTodayKey();
+    setPrayerDate(today);
+    const raw = window.localStorage.getItem(prayerChecksKey(today, prayerGrade));
+    if (!raw) {
+      setPrayerChecks(new Set());
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as number[];
+      setPrayerChecks(new Set(Array.isArray(parsed) ? parsed : []));
+    } catch {
+      setPrayerChecks(new Set());
+    }
+  }, [prayerGrade]);
+
+  const togglePrayerCheck = useCallback(
+    (no: number) => {
+      setPrayerChecks((prev) => {
+        const next = new Set(prev);
+        if (next.has(no)) {
+          next.delete(no);
+        } else {
+          next.add(no);
+        }
+        window.localStorage.setItem(
+          prayerChecksKey(prayerDate, prayerGrade),
+          JSON.stringify(Array.from(next).sort((a, b) => a - b)),
+        );
+        return next;
+      });
+    },
+    [prayerDate, prayerGrade],
+  );
+
+  const handlePrayerGradeChange = useCallback((grade: PrayerGradeKey) => {
+    setPrayerGrade(grade);
+    setOpenPrayer(null);
+    window.localStorage.setItem(PRAYER_GRADE_KEY, grade);
+  }, []);
+
+  const resetPrayers = useCallback(() => {
+    window.localStorage.removeItem(prayerChecksKey(prayerDate, prayerGrade));
+    setPrayerChecks(new Set());
+    setOpenPrayer(null);
+  }, [prayerDate, prayerGrade]);
+
+  const prayerCard = prayersData[prayerGrade];
+  const prayerTotal = prayerCard.prayers.length;
+  const prayerDone = prayerChecks.size;
+  const prayerAllDone = prayerTotal > 0 && prayerDone >= prayerTotal;
+  const prayerPercent = prayerTotal > 0 ? (prayerDone / prayerTotal) * 100 : 0;
+
+  useEffect(() => {
     const onScroll = () => {
       const bottomDistance =
         document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
@@ -613,12 +673,143 @@ export default function BibleReadingPage() {
         </div>
       </section>
 
-      <section className="brp-prayer">
-        <p className="brp-section-label">오늘의 기도</p>
-        <div className="brp-prayer-card">
-          <h2>기도카드 준비 중</h2>
-          <p>추후 기도카드 이미지나 PDF를 받으면 이 영역에 체크리스트를 연결할 수 있어요.</p>
+      <section className="brp-prayer" aria-label="오늘의 기도">
+        <header className="brp-prayer-header">
+          <div className="brp-prayer-heading">
+            <p className="brp-section-label">오늘의 기도</p>
+            <h2>
+              {prayerAllDone ? "오늘의 기도 완료" : "7가지 기도를 차례로 따라해요"}
+            </h2>
+            <p className="brp-prayer-meta">
+              <span className="brp-prayer-count">{prayerDone} / {prayerTotal} 마침</span>
+              <span className="brp-prayer-divider" aria-hidden>·</span>
+              <span className="brp-prayer-date">{prayerDate}</span>
+            </p>
+          </div>
+
+          <div
+            className="brp-prayer-toggle"
+            role="tablist"
+            aria-label="학년 선택"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={prayerGrade === "lower"}
+              className={prayerGrade === "lower" ? "is-active" : ""}
+              onClick={() => handlePrayerGradeChange("lower")}
+            >
+              저학년
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={prayerGrade === "upper"}
+              className={prayerGrade === "upper" ? "is-active" : ""}
+              onClick={() => handlePrayerGradeChange("upper")}
+            >
+              고학년
+            </button>
+          </div>
+        </header>
+
+        <div className="brp-prayer-bar" aria-hidden="true">
+          <span style={{ width: `${prayerPercent}%` }} />
         </div>
+
+        <ol className="brp-prayer-list">
+          {prayerCard.prayers.map((prayer) => {
+            const isOpen = openPrayer === prayer.no;
+            const isDone = prayerChecks.has(prayer.no);
+            return (
+              <li
+                key={prayer.no}
+                className={`brp-prayer-item ${isOpen ? "is-open" : ""} ${
+                  isDone ? "is-done" : ""
+                }`}
+              >
+                <button
+                  type="button"
+                  className="brp-prayer-trigger"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenPrayer(isOpen ? null : prayer.no)}
+                >
+                  <span className="brp-prayer-no">
+                    {String(prayer.no).padStart(2, "0")}
+                  </span>
+                  <span className="brp-prayer-theme">{prayer.theme}</span>
+                  <span className="brp-prayer-mark" aria-hidden="true">
+                    {isDone ? (
+                      <svg viewBox="0 0 20 20" width="14" height="14">
+                        <path
+                          d="M4.5 10.5l3.2 3.2L15.5 6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : (
+                      <span className="brp-prayer-mark-dot" />
+                    )}
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <div className="brp-prayer-body">
+                    <blockquote className="brp-prayer-verse">
+                      <p>{prayer.verse}</p>
+                      <cite>{prayer.ref}</cite>
+                    </blockquote>
+
+                    <div className="brp-prayer-section">
+                      <p className="brp-prayer-label">생각해보기</p>
+                      <p className="brp-prayer-think">{prayer.think}</p>
+                    </div>
+
+                    <div className="brp-prayer-section">
+                      <p className="brp-prayer-label">따라서 기도해요</p>
+                      <p className="brp-prayer-text">{prayer.pray}</p>
+                    </div>
+
+                    <div className="brp-prayer-actions">
+                      <button
+                        type="button"
+                        className={`brp-prayer-check ${isDone ? "is-done" : ""}`}
+                        onClick={() => togglePrayerCheck(prayer.no)}
+                      >
+                        {isDone ? "체크 해제" : "이 기도 마쳤어요"}
+                      </button>
+                      {prayer.no < prayerTotal && (
+                        <button
+                          type="button"
+                          className="brp-prayer-next"
+                          onClick={() => setOpenPrayer(prayer.no + 1)}
+                        >
+                          다음 기도 →
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="brp-prayer-lords">
+          <p className="brp-prayer-label">주기도문 (마태복음 6:9-13)</p>
+          <p>{prayerCard.lordsPrayer}</p>
+        </div>
+
+        {prayerDone > 0 && (
+          <div className="brp-prayer-foot">
+            <button type="button" className="brp-prayer-reset" onClick={resetPrayers}>
+              오늘 기도 다시하기
+            </button>
+          </div>
+        )}
       </section>
 
       <div className="brp-dock" role="region" aria-label="읽기 컨트롤">
