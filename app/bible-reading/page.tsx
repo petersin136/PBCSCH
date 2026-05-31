@@ -509,6 +509,10 @@ export default function BibleReadingPage() {
   const [prayerListeningNo, setPrayerListeningNo] = useState<number | null>(null);
   const [prayerReadCounts, setPrayerReadCounts] = useState<Record<number, number>>({});
   const [prayerSpeechMessage, setPrayerSpeechMessage] = useState("");
+  // SSR 환경에서는 window가 없어 false가 되며, HMR/하이드레이션 도중 그 값이 굳어
+  // 마이크 버튼이 disabled 상태로 멈춰버리는 일이 있다. 기본값을 true로 두고
+  // 클라이언트 마운트 후 실제 API 지원 여부로 보정한다.
+  const [speechSupported, setSpeechSupported] = useState(true);
 
   const listeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -536,7 +540,6 @@ export default function BibleReadingPage() {
   const progress = totalVerses > 0
     ? Math.min(100, (readVerseCount / totalVerses) * 100)
     : 0;
-  const speechSupported = typeof window !== "undefined" && getSpeechRecognition() !== null;
   const hasFilledText = totalVerses > 0;
 
   const stopListening = useCallback(() => {
@@ -936,6 +939,9 @@ export default function BibleReadingPage() {
     if (savedMode === "mic" || savedMode === "scroll") {
       setReadingMode(savedMode);
     }
+
+    // 클라이언트에서 실제 Web Speech API 지원 여부를 확정한다.
+    setSpeechSupported(getSpeechRecognition() !== null);
   }, []);
 
   useEffect(() => {
@@ -3281,18 +3287,29 @@ export default function BibleReadingPage() {
           }
 
           .brp-mode-tab {
-            padding: 9px 10px;
+            padding: 10px 8px;
             border-radius: 10px;
-            gap: 2px;
+            gap: 3px;
+            align-items: center;
+            text-align: center;
           }
 
           .brp-mode-tab-name {
             font-size: 13.5px;
+            text-align: center;
           }
 
           .brp-mode-tab-desc {
-            font-size: 11px;
+            font-size: 10.5px;
             line-height: 1.35;
+            letter-spacing: -0.02em;
+            text-align: center;
+            /* 한국어를 어절 단위로 줄바꿈하고, 양쪽 줄 길이가 비슷해지도록 균형 잡아
+               "표시돼" + "요" 처럼 마지막 한 글자만 떨어지는 못난 wrap을 방지한다. */
+            word-break: keep-all;
+            overflow-wrap: break-word;
+            text-wrap: balance;
+            max-width: 100%;
           }
 
           .brp-quiz {
