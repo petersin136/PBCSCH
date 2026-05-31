@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import proverbsData from "./proverbs.json";
+import matthewData from "./matthew.json";
+import markData from "./mark.json";
+import lukeData from "./luke.json";
+import johnData from "./john.json";
 import prayersJson from "./prayers.json";
+import { BOOKS, BOOK_ORDER, type BookId } from "./books";
 
 type TranslationKey = "krv" | "kids";
 
@@ -49,6 +54,15 @@ type WordToken = {
   normalized: string;
 };
 
+type ReadingMode = "mic" | "scroll";
+
+type QuizQuestion = {
+  verseNum: number;
+  blanked: string;
+  correct: string;
+  options: string[];
+};
+
 type SpeechRecognitionResultLike = {
   length: number;
   isFinal: boolean;
@@ -78,15 +92,46 @@ type SpeechRecognitionLike = {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
-const data = proverbsData as BibleData;
-const prayersData = prayersJson as PrayersData;
-const expectedCounts = [
-  33, 22, 35, 27, 23, 35, 27, 36, 18, 32, 31, 28, 25, 35, 33, 33, 28, 24, 29,
-  30, 31, 29, 35, 34, 28, 28, 27, 28, 27, 33, 31,
-];
+const BOOK_DATA: Record<BookId, BibleData> = {
+  proverbs: proverbsData as BibleData,
+  matthew: matthewData as BibleData,
+  mark: markData as BibleData,
+  luke: lukeData as BibleData,
+  john: johnData as BibleData,
+};
 
-const doneKey = (chapter: number) => `proverbs_done_${chapter}`;
-const progressKey = (chapter: number) => `proverbs_progress_${chapter}`;
+const prayersData = prayersJson as PrayersData;
+
+const doneKey = (bookId: BookId, chapter: number) =>
+  `bible_done_${bookId}_${chapter}`;
+const verseProgressKey = (bookId: BookId, chapter: number) =>
+  `bible_verse_progress_${bookId}_${chapter}`;
+const CURRENT_BOOK_KEY = "bible_current_book";
+const currentChapterKey = (bookId: BookId) =>
+  `bible_current_chapter_${bookId}`;
+const MIGRATION_V1_KEY = "bible_migrated_v1";
+const READING_MODE_KEY = "bible_reading_mode";
+
+const migrateLegacyKeys = () => {
+  if (typeof window === "undefined") return;
+  if (window.localStorage.getItem(MIGRATION_V1_KEY) === "true") return;
+  for (let i = 1; i <= 31; i += 1) {
+    const oldDone = window.localStorage.getItem(`proverbs_done_${i}`);
+    if (oldDone !== null) {
+      window.localStorage.setItem(`bible_done_proverbs_${i}`, oldDone);
+    }
+    const oldProgress = window.localStorage.getItem(
+      `proverbs_verse_progress_${i}`,
+    );
+    if (oldProgress !== null) {
+      window.localStorage.setItem(
+        `bible_verse_progress_proverbs_${i}`,
+        oldProgress,
+      );
+    }
+  }
+  window.localStorage.setItem(MIGRATION_V1_KEY, "true");
+};
 
 const PRAYER_GRADE_KEY = "prayer_grade";
 const prayerChecksKey = (date: string, grade: PrayerGradeKey) =>
@@ -162,6 +207,177 @@ const getSpeechRecognition = (): SpeechRecognitionConstructor | null => {
   };
 
   return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
+};
+
+// 절 단위 매칭. 음성에서 각 절의 "첫 의미 단어"가 순차적으로 등장하면
+// 그 절을 "읽음"으로 처리한다. 짧은 단어/조사만 있을 때는 두 번째
+// 단어까지 한 절 범위 내에 함께 등장해야 인정한다.
+const stripToHangulOnly = (value: string) =>
+  value.toLowerCase().replace(/[^\u3131-\u318e\uac00-\ud7a3]/g, "");
+
+const extractVerseSignatures = (verseText: string): string[] => {
+  return verseText
+    .split(/\s+/)
+    .map((word) => normalizeKorean(word))
+    .filter((word) => word.length >= 2);
+};
+
+const countReadVerses = (transcript: string, verses: Verse[]): number => {
+  if (verses.length === 0) return 0;
+  const stream = stripToHangulOnly(transcript);
+  if (!stream) return 0;
+
+  let count = 0;
+  let cursor = 0;
+
+  for (const verse of verses) {
+    const sigs = extractVerseSignatures(verse.t);
+
+    if (sigs.length === 0) {
+      // 표지(sig) 단어가 없으면(아주 짧은 절) 그냥 통과
+      count += 1;
+      continue;
+    }
+
+    const first = sigs[0];
+    const second = sigs.length >= 2 ? sigs[1] : null;
+
+    // 1차: 첫 단어 정확 매칭
+    let firstIdx = stream.indexOf(first, cursor);
+
+    // 2차: 음성 인식 누락 대비 prefix 매칭 (3자 이상일 때만)
+    if (firstIdx === -1 && first.length >= 3) {
+      const prefix = first.slice(0, 2);
+      firstIdx = stream.indexOf(prefix, cursor);
+    }
+
+    if (firstIdx === -1) break;
+
+    // 두 번째 단어가 있다면 절 길이 안쪽에 함께 등장해야 한다.
+    // 그래야 우연히 첫 단어만 잡힌 경우(이전 절 잔여물)를 거른다.
+    if (second) {
+      const verseLen = stripToHangulOnly(verse.t).length;
+      const windowEnd = Math.min(
+        stream.length,
+        firstIdx + Math.max(verseLen * 2 + 8, second.length + 10),
+      );
+      let secondIdx = stream.indexOf(second, firstIdx + first.length);
+      if (secondIdx === -1 && second.length >= 3) {
+        secondIdx = stream.indexOf(second.slice(0, 2), firstIdx + first.length);
+      }
+      if (secondIdx === -1 || secondIdx > windowEnd) {
+        break;
+      }
+      cursor = secondIdx + second.length;
+    } else {
+      cursor = firstIdx + first.length;
+    }
+
+    count += 1;
+  }
+
+  return count;
+};
+
+const KOREAN_PARTICLE_TAIL =
+  /(으로|에게|에서|부터|까지|처럼|보다|에서는|에서도|에는|에도|이라|이라도|이다|이나|이며|이고|은|는|이|가|을|를|에|의|와|과|도|만|로|께|야|아|라|며|고|도다|니라|이여)$/u;
+
+const stripParticleSuffix = (word: string) => {
+  let text = word;
+  for (let i = 0; i < 2; i += 1) {
+    const stripped = text.replace(KOREAN_PARTICLE_TAIL, "");
+    if (!stripped || stripped === text) break;
+    text = stripped;
+  }
+  return text;
+};
+
+const shuffleArray = <T,>(arr: T[]): T[] => {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+};
+
+const collectQuizWordPool = (verses: Verse[]): string[] => {
+  const pool = new Set<string>();
+  verses.forEach((verse) => {
+    verse.t.split(/\s+/).forEach((rawWord) => {
+      const hangul = rawWord.replace(/[^\u3131-\u318e\uac00-\ud7a3]/g, "");
+      if (hangul.length >= 2 && hangul.length <= 6) {
+        pool.add(hangul);
+      }
+    });
+  });
+  return Array.from(pool);
+};
+
+const generateChapterQuiz = (verses: Verse[]): QuizQuestion[] => {
+  if (verses.length === 0) return [];
+  const wordPool = collectQuizWordPool(verses);
+
+  // 4단어 이상 가진 절 중에서 무작위 2개
+  const longEnough = verses.filter((verse) => {
+    const tokens = verse.t.split(/\s+/).filter((token) => {
+      const hangul = token.replace(/[^\u3131-\u318e\uac00-\ud7a3]/g, "");
+      return hangul.length >= 2;
+    });
+    return tokens.length >= 4;
+  });
+
+  const usable = longEnough.length >= 2 ? longEnough : verses;
+  const picked = shuffleArray(usable).slice(0, 2);
+
+  const questions: QuizQuestion[] = [];
+
+  for (const verse of picked) {
+    const tokens = verse.t.split(/\s+/);
+    const candidates = tokens
+      .map((token, idx) => {
+        const hangul = token.replace(/[^\u3131-\u318e\uac00-\ud7a3]/g, "");
+        return { token, hangul, idx };
+      })
+      .filter((item) => item.hangul.length >= 2 && item.hangul.length <= 5);
+
+    if (candidates.length === 0) continue;
+
+    const target = candidates[Math.floor(Math.random() * candidates.length)];
+    const targetRoot = stripParticleSuffix(target.hangul);
+
+    const blanked = tokens
+      .map((token, idx) => (idx === target.idx ? "____" : token))
+      .join(" ");
+
+    const distractors: string[] = [];
+    const usedRoots = new Set<string>([targetRoot]);
+    const shuffled = shuffleArray(wordPool);
+    for (const candidate of shuffled) {
+      if (distractors.length >= 3) break;
+      const root = stripParticleSuffix(candidate);
+      if (!root || root.length < 2) continue;
+      if (usedRoots.has(root)) continue;
+      usedRoots.add(root);
+      distractors.push(candidate);
+    }
+
+    // 풀이 너무 작으면 정답만 들어가는 경우가 없게 placeholder 채워두기
+    while (distractors.length < 3) {
+      distractors.push(`보기${distractors.length + 1}`);
+    }
+
+    const options = shuffleArray([target.token, ...distractors]);
+
+    questions.push({
+      verseNum: verse.n,
+      blanked,
+      correct: target.token,
+      options,
+    });
+  }
+
+  return questions;
 };
 
 const advanceReadIndex = (
@@ -260,14 +476,20 @@ const getMicrophonePermissionState = async () => {
 };
 
 export default function BibleReadingPage() {
+  const [bookId, setBookId] = useState<BookId>("proverbs");
   const [chapterNumber, setChapterNumber] = useState(1);
   const [translation, setTranslation] = useState<TranslationKey>("krv");
-  const [readCount, setReadCount] = useState(0);
+  const [readingMode, setReadingMode] = useState<ReadingMode>("mic");
+  const [readVerseCount, setReadVerseCount] = useState(0);
   const [doneChapters, setDoneChapters] = useState<Set<number>>(new Set());
   const [listening, setListening] = useState(false);
   const [speechMessage, setSpeechMessage] = useState("");
-  const [manualCanFinish, setManualCanFinish] = useState(false);
+  const [scrollReady, setScrollReady] = useState(false);
   const [completeVisible, setCompleteVisible] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<(string | null)[]>([]);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [prayerGrade, setPrayerGrade] = useState<PrayerGradeKey>("lower");
   const [prayerDate, setPrayerDate] = useState<string>(() => getTodayKey());
   const [prayerChecks, setPrayerChecks] = useState<Set<number>>(new Set());
@@ -278,43 +500,30 @@ export default function BibleReadingPage() {
 
   const listeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const readCountRef = useRef(0);
+  const readVerseCountRef = useRef(0);
   const minReadTimeRef = useRef(0);
   const reachedBottomRef = useRef(false);
   const prayerListeningRef = useRef<number | null>(null);
   const prayerRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const prayerReadCountRefs = useRef<Record<number, number>>({});
 
-  const chapter = data.chapters.find((item) => item.chapter === chapterNumber) ?? data.chapters[0];
-  const verses = chapter.verses[translation];
+  const bookMeta = BOOKS[bookId];
+  const data = BOOK_DATA[bookId];
+  const chapter =
+    data.chapters.find((item) => item.chapter === chapterNumber) ??
+    data.chapters[0];
+  const hasKrv = chapter.verses.krv.length > 0;
+  const hasKids = chapter.verses.kids.length > 0;
+  const effectiveTranslation: TranslationKey =
+    translation === "krv" && !hasKrv && hasKids ? "kids" : translation;
+  const verses = chapter.verses[effectiveTranslation];
 
-  const words = useMemo<WordToken[]>(() => {
-    return verses.flatMap((verse) =>
-      verse.t
-        .split(/\s+/)
-        .map((word) => word.trim())
-        .filter(Boolean)
-        .map((word, index) => ({
-          id: `${chapter.chapter}-${translation}-${verse.n}-${index}`,
-          verse: verse.n,
-          text: word,
-          normalized: normalizeKorean(word),
-        })),
-    );
-  }, [chapter, translation, verses]);
-
-  const totalWords = words.length;
-  const progress = totalWords > 0 ? Math.min(100, (readCount / totalWords) * 100) : 0;
+  const totalVerses = verses.length;
+  const progress = totalVerses > 0
+    ? Math.min(100, (readVerseCount / totalVerses) * 100)
+    : 0;
   const speechSupported = typeof window !== "undefined" && getSpeechRecognition() !== null;
-  const hasFilledText = totalWords > 0;
-
-  const groupedWords = useMemo(() => {
-    return verses.map((verse) => ({
-      n: verse.n,
-      text: verse.t,
-      words: words.filter((word) => word.verse === verse.n),
-    }));
-  }, [verses, words]);
+  const hasFilledText = totalVerses > 0;
 
   const stopListening = useCallback(() => {
     listeningRef.current = false;
@@ -322,52 +531,116 @@ export default function BibleReadingPage() {
     recognitionRef.current?.abort();
   }, []);
 
-  const finishThreshold = totalWords > 0 ? Math.max(1, Math.floor(totalWords * 0.8)) : 0;
+  const finalizeChapter = useCallback(() => {
+    stopListening();
+    setReadVerseCount(totalVerses);
+    readVerseCountRef.current = totalVerses;
+    window.localStorage.setItem(doneKey(bookId, chapterNumber), "true");
+    window.localStorage.setItem(
+      verseProgressKey(bookId, chapterNumber),
+      String(totalVerses),
+    );
+    setDoneChapters((prev) => new Set(prev).add(chapterNumber));
+    setCompleteVisible(true);
+  }, [bookId, chapterNumber, stopListening, totalVerses]);
 
-  const markComplete = useCallback(() => {
+  const openChapterQuiz = useCallback(() => {
     if (!hasFilledText) return;
-    if (readCountRef.current < finishThreshold) {
+    const generated = generateChapterQuiz(verses);
+    if (generated.length === 0) {
+      finalizeChapter();
+      return;
+    }
+    setQuizQuestions(generated);
+    setQuizAnswers(new Array(generated.length).fill(null));
+    setQuizSubmitted(false);
+    setQuizOpen(true);
+  }, [finalizeChapter, hasFilledText, verses]);
+
+  const handleManualFinish = useCallback(() => {
+    if (!hasFilledText) return;
+
+    if (readingMode === "mic") {
+      // 음성 모드: 절을 80% 이상 잡았으면 바로 완료
+      const threshold = Math.max(1, Math.floor(totalVerses * 0.8));
+      if (readVerseCountRef.current >= threshold) {
+        finalizeChapter();
+      } else {
+        setSpeechMessage(
+          "아직 본문을 다 읽지 않았어요. 절을 끝까지 읽어 주세요.",
+        );
+      }
+      return;
+    }
+
+    // 스크롤 모드: 짧은 퀴즈로 확인
+    if (!scrollReady) {
       setSpeechMessage(
-        "아직 본문을 다 읽지 않았어요. 마이크로 끝까지 읽어 주세요.",
+        "조금 더 천천히 읽어 주세요. 끝까지 스크롤하고 다시 눌러주세요.",
       );
       return;
     }
-    stopListening();
-    setReadCount(totalWords);
-    readCountRef.current = totalWords;
-    window.localStorage.setItem(doneKey(chapterNumber), "true");
-    window.localStorage.setItem(progressKey(chapterNumber), String(totalWords));
-    setDoneChapters((prev) => new Set(prev).add(chapterNumber));
-    setCompleteVisible(true);
-  }, [chapterNumber, finishThreshold, hasFilledText, stopListening, totalWords]);
+    openChapterQuiz();
+  }, [
+    finalizeChapter,
+    hasFilledText,
+    openChapterQuiz,
+    readingMode,
+    scrollReady,
+    totalVerses,
+  ]);
 
   const resetChapter = useCallback(() => {
     stopListening();
-    readCountRef.current = 0;
-    setReadCount(0);
+    readVerseCountRef.current = 0;
+    setReadVerseCount(0);
     setCompleteVisible(false);
     setSpeechMessage("");
-    window.localStorage.removeItem(doneKey(chapterNumber));
-    window.localStorage.removeItem(progressKey(chapterNumber));
+    setQuizOpen(false);
+    setQuizSubmitted(false);
+    setQuizAnswers([]);
+    setQuizQuestions([]);
+    window.localStorage.removeItem(doneKey(bookId, chapterNumber));
+    window.localStorage.removeItem(verseProgressKey(bookId, chapterNumber));
     setDoneChapters((prev) => {
       if (!prev.has(chapterNumber)) return prev;
       const next = new Set(prev);
       next.delete(chapterNumber);
       return next;
     });
-  }, [chapterNumber, stopListening]);
+  }, [bookId, chapterNumber, stopListening]);
 
   const processTranscript = useCallback(
     (transcript: string) => {
       if (!hasFilledText) return;
-      const nextIndex = advanceReadIndex(transcript, words, readCountRef.current);
-      if (nextIndex !== readCountRef.current) {
-        readCountRef.current = nextIndex;
-        setReadCount(nextIndex);
-        window.localStorage.setItem(progressKey(chapterNumber), String(nextIndex));
+      const detected = countReadVerses(transcript, verses);
+      if (detected > readVerseCountRef.current) {
+        const clamped = Math.min(totalVerses, detected);
+        readVerseCountRef.current = clamped;
+        setReadVerseCount(clamped);
+        window.localStorage.setItem(
+          verseProgressKey(bookId, chapterNumber),
+          String(clamped),
+        );
       }
     },
-    [chapterNumber, hasFilledText, words],
+    [bookId, chapterNumber, hasFilledText, totalVerses, verses],
+  );
+
+  const handleReadingModeChange = useCallback(
+    (next: ReadingMode) => {
+      if (next === readingMode) return;
+      setReadingMode(next);
+      window.localStorage.setItem(READING_MODE_KEY, next);
+      setSpeechMessage("");
+      if (next === "scroll") {
+        // 마이크 모드에서 켜져있던 인식 종료
+        listeningRef.current = false;
+        setListening(false);
+        recognitionRef.current?.abort();
+      }
+    },
+    [readingMode],
   );
 
   const startListening = useCallback(() => {
@@ -429,7 +702,7 @@ export default function BibleReadingPage() {
       }
     };
     recognition.onend = () => {
-      if (listeningRef.current && readCountRef.current < totalWords) {
+      if (listeningRef.current && readVerseCountRef.current < totalVerses) {
         window.setTimeout(() => {
           if (!listeningRef.current) return;
           try {
@@ -446,7 +719,7 @@ export default function BibleReadingPage() {
     recognitionRef.current = recognition;
     listeningRef.current = true;
     setListening(true);
-    setSpeechMessage("듣고 있어요. 말씀을 천천히 또박또박 읽어 주세요.");
+    setSpeechMessage("듣고 있어요. 절의 첫 부분을 또박또박 읽어 주세요.");
 
     try {
       recognition.start();
@@ -455,43 +728,125 @@ export default function BibleReadingPage() {
       setListening(false);
       listeningRef.current = false;
     }
-  }, [hasFilledText, processTranscript, totalWords]);
+  }, [hasFilledText, processTranscript, totalVerses]);
 
   const moveChapter = (next: number) => {
-    const clamped = Math.min(31, Math.max(1, next));
+    const clamped = Math.min(bookMeta.totalChapters, Math.max(1, next));
     setChapterNumber(clamped);
     setCompleteVisible(false);
+    setQuizOpen(false);
+    setQuizSubmitted(false);
+    setQuizAnswers([]);
+    setQuizQuestions([]);
     stopListening();
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        currentChapterKey(bookId),
+        String(clamped),
+      );
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const changeBook = useCallback(
+    (nextBookId: BookId) => {
+      if (nextBookId === bookId) return;
+      stopListening();
+      setCompleteVisible(false);
+      setQuizOpen(false);
+      setQuizSubmitted(false);
+      setQuizAnswers([]);
+      setQuizQuestions([]);
+      setBookId(nextBookId);
+      const savedChapter = window.localStorage.getItem(
+        currentChapterKey(nextBookId),
+      );
+      const next = savedChapter ? Number(savedChapter) : 1;
+      const meta = BOOKS[nextBookId];
+      const safeChapter =
+        Number.isFinite(next) && next >= 1 && next <= meta.totalChapters
+          ? next
+          : 1;
+      setChapterNumber(safeChapter);
+      window.localStorage.setItem(CURRENT_BOOK_KEY, nextBookId);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [bookId, stopListening],
+  );
+
+  useEffect(() => {
+    migrateLegacyKeys();
+
+    const savedBook = window.localStorage.getItem(CURRENT_BOOK_KEY);
+    if (
+      savedBook === "proverbs" ||
+      savedBook === "matthew" ||
+      savedBook === "mark" ||
+      savedBook === "luke" ||
+      savedBook === "john"
+    ) {
+      setBookId(savedBook);
+      const savedChapter = window.localStorage.getItem(
+        currentChapterKey(savedBook),
+      );
+      const meta = BOOKS[savedBook];
+      const next = savedChapter ? Number(savedChapter) : 1;
+      if (Number.isFinite(next) && next >= 1 && next <= meta.totalChapters) {
+        setChapterNumber(next);
+      }
+    }
+
+    const savedMode = window.localStorage.getItem(READING_MODE_KEY);
+    if (savedMode === "mic" || savedMode === "scroll") {
+      setReadingMode(savedMode);
+    }
+  }, []);
 
   useEffect(() => {
     const done = new Set<number>();
     data.chapters.forEach((item) => {
-      if (window.localStorage.getItem(doneKey(item.chapter)) === "true") {
+      if (
+        window.localStorage.getItem(doneKey(bookId, item.chapter)) === "true"
+      ) {
         done.add(item.chapter);
       }
     });
     setDoneChapters(done);
-  }, []);
+  }, [bookId, data]);
 
   useEffect(() => {
-    const savedDone = window.localStorage.getItem(doneKey(chapterNumber)) === "true";
-    const savedProgress = Number(window.localStorage.getItem(progressKey(chapterNumber)) ?? "0");
-    const nextCount = savedDone && totalWords > 0 ? totalWords : Math.min(savedProgress, totalWords);
+    const savedDone =
+      window.localStorage.getItem(doneKey(bookId, chapterNumber)) === "true";
+    const savedProgress = Number(
+      window.localStorage.getItem(verseProgressKey(bookId, chapterNumber)) ??
+        "0",
+    );
+    const nextCount =
+      savedDone && totalVerses > 0
+        ? totalVerses
+        : Math.min(Math.max(0, savedProgress), totalVerses);
 
-    readCountRef.current = nextCount;
-    setReadCount(nextCount);
-    setManualCanFinish(false);
+    readVerseCountRef.current = nextCount;
+    setReadVerseCount(nextCount);
+    setScrollReady(false);
     reachedBottomRef.current = false;
-    minReadTimeRef.current = Date.now() + Math.max(15000, Math.ceil((verses.map((v) => v.t).join("").length / 500) * 60000));
-  }, [chapterNumber, totalWords, translation, verses]);
+    minReadTimeRef.current =
+      Date.now() +
+      Math.max(
+        12000,
+        Math.ceil((verses.map((v) => v.t).join("").length / 500) * 60000),
+      );
+  }, [bookId, chapterNumber, totalVerses, translation, verses]);
 
   useEffect(() => {
-    if (totalWords > 0 && readCount >= totalWords) {
-      markComplete();
+    if (
+      readingMode === "mic" &&
+      totalVerses > 0 &&
+      readVerseCount >= totalVerses
+    ) {
+      finalizeChapter();
     }
-  }, [markComplete, readCount, totalWords]);
+  }, [finalizeChapter, readVerseCount, readingMode, totalVerses]);
 
   useEffect(() => {
     const savedGrade = window.localStorage.getItem(PRAYER_GRADE_KEY);
@@ -556,7 +911,8 @@ export default function BibleReadingPage() {
   const prayerWordsByNo = useMemo(() => {
     const map: Record<number, WordToken[]> = {};
     prayerCard.prayers.forEach((p) => {
-      map[p.no] = p.pray
+      const stripped = p.pray.replace(/\([^)]*\)/g, " ");
+      map[p.no] = stripped
         .split(/\s+/)
         .map((w) => w.trim())
         .filter(Boolean)
@@ -722,12 +1078,12 @@ export default function BibleReadingPage() {
     const onScroll = () => {
       const bottomDistance =
         document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
-      if (bottomDistance < 120) {
+      if (bottomDistance < 160) {
         reachedBottomRef.current = true;
       }
 
       if (reachedBottomRef.current && Date.now() >= minReadTimeRef.current) {
-        setManualCanFinish(true);
+        setScrollReady(true);
       }
     };
 
@@ -739,6 +1095,41 @@ export default function BibleReadingPage() {
       window.clearInterval(timer);
     };
   }, [chapterNumber, translation]);
+
+  const handleQuizAnswer = useCallback((idx: number, option: string) => {
+    setQuizAnswers((prev) => {
+      const next = [...prev];
+      next[idx] = option;
+      return next;
+    });
+  }, []);
+
+  const quizAllCorrect = useMemo(() => {
+    if (quizQuestions.length === 0) return false;
+    return quizQuestions.every((q, i) => quizAnswers[i] === q.correct);
+  }, [quizAnswers, quizQuestions]);
+
+  const handleQuizSubmit = useCallback(() => {
+    if (quizAnswers.some((a) => !a)) return;
+    setQuizSubmitted(true);
+    const allCorrect = quizQuestions.every((q, i) => quizAnswers[i] === q.correct);
+    if (allCorrect) {
+      window.setTimeout(() => {
+        setQuizOpen(false);
+        finalizeChapter();
+      }, 1100);
+    }
+  }, [finalizeChapter, quizAnswers, quizQuestions]);
+
+  const handleQuizRetry = useCallback(() => {
+    setQuizSubmitted(false);
+    setQuizAnswers(new Array(quizQuestions.length).fill(null));
+  }, [quizQuestions.length]);
+
+  const handleQuizClose = useCallback(() => {
+    setQuizOpen(false);
+    setQuizSubmitted(false);
+  }, []);
 
   return (
     <main className="brp-page">
@@ -767,25 +1158,86 @@ export default function BibleReadingPage() {
 
       <section className="brp-hero">
         <p className="brp-eyebrow">말씀 성경 읽기 프로젝트</p>
-        <h1>잠언 통독</h1>
+        <h1>{bookMeta.name} 통독</h1>
         <p>
-          하루 한 장씩 소리 내어 읽어요. 읽은 단어가 차분한 색으로 표시되고,
+          하루 한 장씩 읽어요. 읽은 절은 차분한 색으로 표시되고,
           한 장을 마치면 완료됩니다.
         </p>
       </section>
 
+      <section
+        className="brp-book-tabs"
+        role="tablist"
+        aria-label="성경 책 선택"
+      >
+        {BOOK_ORDER.map((id) => {
+          const meta = BOOKS[id];
+          const isActive = id === bookId;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`brp-book-tab ${isActive ? "is-active" : ""}`}
+              onClick={() => changeBook(id)}
+            >
+              {meta.name}
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="brp-mode-tabs" role="tablist" aria-label="읽기 모드 선택">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={readingMode === "mic"}
+          className={`brp-mode-tab ${readingMode === "mic" ? "is-active" : ""}`}
+          onClick={() => handleReadingModeChange("mic")}
+        >
+          <span className="brp-mode-tab-name">직접 읽기</span>
+          <span className="brp-mode-tab-desc">
+            소리내어 읽으면 절이 자동으로 표시돼요
+          </span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={readingMode === "scroll"}
+          className={`brp-mode-tab ${readingMode === "scroll" ? "is-active" : ""}`}
+          onClick={() => handleReadingModeChange("scroll")}
+        >
+          <span className="brp-mode-tab-name">스크롤로 읽기</span>
+          <span className="brp-mode-tab-desc">
+            눈으로 읽고 간단한 퀴즈로 확인해요
+          </span>
+        </button>
+      </section>
+
       <section className="brp-toolbar" aria-label="성경 읽기 조작">
         <div className="brp-translation">
-          {(Object.keys(data.translations) as TranslationKey[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={translation === key ? "is-active" : ""}
-              onClick={() => setTranslation(key)}
-            >
-              {data.translations[key].label}
-            </button>
-          ))}
+          {(Object.keys(data.translations) as TranslationKey[]).map((key) => {
+            const isKrvDisabled = key === "krv" && !hasKrv;
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`${
+                  effectiveTranslation === key ? "is-active" : ""
+                } ${isKrvDisabled ? "is-disabled" : ""}`}
+                disabled={isKrvDisabled}
+                title={
+                  isKrvDisabled
+                    ? "이 책의 개역개정 본문은 아직 준비되지 않았어요."
+                    : undefined
+                }
+                onClick={() => setTranslation(key)}
+              >
+                {data.translations[key].label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="brp-chapter-switcher">
@@ -797,7 +1249,7 @@ export default function BibleReadingPage() {
             <select
               value={chapterNumber}
               onChange={(event) => moveChapter(Number(event.target.value))}
-              aria-label="잠언 장 선택"
+              aria-label={`${bookMeta.name} 장 선택`}
             >
               {data.chapters.map((item) => (
                 <option key={item.chapter} value={item.chapter}>
@@ -813,33 +1265,43 @@ export default function BibleReadingPage() {
         </div>
       </section>
 
-      <section className="brp-reader" aria-label={`잠언 ${chapterNumber}장 본문`}>
-        {groupedWords.map((verse) => (
-          <div key={`${chapterNumber}-${translation}-${verse.n}`} className="brp-verse">
-            <span className="brp-verse-number">{verse.n}</span>
-            <p className="brp-verse-text">
-              {verse.words.length > 0
-                ? verse.words.map((word) => {
-                    const wordIndex = words.findIndex((item) => item.id === word.id);
-                    return (
-                      <span
-                        key={word.id}
-                        className={`brp-word ${wordIndex < readCount ? "is-read" : ""}`}
-                      >
-                        {word.text}
-                      </span>
-                    );
-                  })
-                : null}
-            </p>
-          </div>
-        ))}
+      <section
+        className="brp-reader"
+        aria-label={`${bookMeta.name} ${chapterNumber}장 본문`}
+      >
+        {!hasFilledText && (
+          <p className="brp-reader-empty">
+            이 장의 {translation === "krv" ? "개역개정" : "어린이 쉬운"} 본문이
+            아직 준비되지 않았어요. 다른 번역을 선택해 보세요.
+          </p>
+        )}
+        {verses.map((verse, idx) => {
+          const isRead = idx < readVerseCount;
+          const isCurrent =
+            !isRead && idx === readVerseCount && readingMode === "mic" && listening;
+          return (
+            <div
+              key={`${bookId}-${chapterNumber}-${effectiveTranslation}-${verse.n}`}
+              className={`brp-verse ${isRead ? "is-read" : ""} ${
+                isCurrent ? "is-current" : ""
+              }`}
+            >
+              <span className="brp-verse-number">{verse.n}</span>
+              <p className="brp-verse-text">{verse.t}</p>
+            </div>
+          );
+        })}
       </section>
 
-      <section className="brp-progress-grid" aria-label="잠언 통독 진도">
+      <section
+        className="brp-progress-grid"
+        aria-label={`${bookMeta.name} 통독 진도`}
+      >
         <div>
           <p className="brp-section-label">진도</p>
-          <h2>31일 잠언 읽기</h2>
+          <h2>
+            {bookMeta.totalChapters}장 {bookMeta.name} 읽기
+          </h2>
         </div>
         <div className="brp-grid">
           {data.chapters.map((item) => (
@@ -850,7 +1312,7 @@ export default function BibleReadingPage() {
                 doneChapters.has(item.chapter) ? "is-done" : ""
               }`}
               onClick={() => moveChapter(item.chapter)}
-              aria-label={`잠언 ${item.chapter}장으로 이동`}
+              aria-label={`${bookMeta.name} ${item.chapter}장으로 이동`}
             >
               {item.chapter}
             </button>
@@ -972,22 +1434,37 @@ export default function BibleReadingPage() {
                           const readUpTo = prayerReadCounts[prayer.no] ?? 0;
                           let globalIdx = 0;
                           return prayer.pray.split("\n").map((line, lineIdx) => {
-                            const tokens = line.split(/\s+/).filter(Boolean);
+                            const segments = line.split(/(\([^)]*\))/g);
                             return (
                               <div key={lineIdx} className="brp-prayer-text-line">
-                                {tokens.map((token, tokenIdx) => {
-                                  const idx = globalIdx;
-                                  globalIdx += 1;
-                                  return (
-                                    <span
-                                      key={tokenIdx}
-                                      className={`brp-prayer-word ${
-                                        idx < readUpTo ? "is-read" : ""
-                                      }`}
-                                    >
-                                      {token}
-                                    </span>
-                                  );
+                                {segments.flatMap((segment, segIdx) => {
+                                  if (!segment) return [];
+                                  if (/^\([^)]*\)$/.test(segment)) {
+                                    return [
+                                      <span
+                                        key={`p-${segIdx}`}
+                                        className="brp-prayer-blank"
+                                        aria-label="직접 채워 넣어요"
+                                      >
+                                        {segment}
+                                      </span>,
+                                    ];
+                                  }
+                                  const tokens = segment.split(/\s+/).filter(Boolean);
+                                  return tokens.map((token, tokenIdx) => {
+                                    const idx = globalIdx;
+                                    globalIdx += 1;
+                                    return (
+                                      <span
+                                        key={`w-${segIdx}-${tokenIdx}`}
+                                        className={`brp-prayer-word ${
+                                          idx < readUpTo ? "is-read" : ""
+                                        }`}
+                                      >
+                                        {token}
+                                      </span>
+                                    );
+                                  });
                                 })}
                               </div>
                             );
@@ -1060,23 +1537,32 @@ export default function BibleReadingPage() {
       </section>
 
       <div className="brp-dock" role="region" aria-label="읽기 컨트롤">
-        <button
-          type="button"
-          className={`brp-mic ${listening ? "is-listening" : ""}`}
-          onClick={() => (listening ? stopListening() : startListening())}
-          disabled={!hasFilledText}
-        >
-          <span />
-          {listening ? "듣는 중지" : "마이크 시작"}
-        </button>
+        {readingMode === "mic" ? (
+          <button
+            type="button"
+            className={`brp-mic ${listening ? "is-listening" : ""}`}
+            onClick={() => (listening ? stopListening() : startListening())}
+            disabled={!hasFilledText || !speechSupported}
+          >
+            <span />
+            {listening ? "듣는 중지" : "마이크 시작"}
+          </button>
+        ) : (
+          <span
+            className={`brp-scroll-status ${scrollReady ? "is-ready" : ""}`}
+            aria-live="polite"
+          >
+            {scrollReady ? "다 읽었어요를 눌러주세요" : "끝까지 스크롤해주세요"}
+          </span>
+        )}
         <span className="brp-count">
-          {readCount} / {totalWords || 0} 단어
+          {readVerseCount} / {totalVerses || 0} 절
         </span>
         <button
           type="button"
           className="brp-reset"
           onClick={resetChapter}
-          disabled={!hasFilledText || readCount === 0}
+          disabled={!hasFilledText || readVerseCount === 0}
           aria-label="이 장 처음부터 다시"
         >
           처음부터 다시
@@ -1084,10 +1570,12 @@ export default function BibleReadingPage() {
         <button
           type="button"
           className="brp-manual"
-          onClick={markComplete}
+          onClick={handleManualFinish}
           disabled={
             !hasFilledText ||
-            (readCount < finishThreshold && !(manualCanFinish && !speechSupported))
+            (readingMode === "mic"
+              ? readVerseCount < Math.max(1, Math.floor(totalVerses * 0.8))
+              : !scrollReady)
           }
         >
           다 읽었어요
@@ -1109,6 +1597,104 @@ export default function BibleReadingPage() {
             <button type="button" onClick={() => setCompleteVisible(false)}>
               계속 보기
             </button>
+          </div>
+        </div>
+      )}
+
+      {quizOpen && quizQuestions.length > 0 && (
+        <div className="brp-quiz" role="dialog" aria-modal="true">
+          <div className="brp-quiz-card">
+            <p className="brp-quiz-eyebrow">읽기 확인</p>
+            <h2>{bookMeta.name} {chapterNumber}장 짧은 퀴즈</h2>
+            <p className="brp-quiz-sub">
+              두 문제 모두 맞히면 완료로 처리해요. 본문을 다시 보고 와도 괜찮아요.
+            </p>
+
+            <ol className="brp-quiz-list">
+              {quizQuestions.map((q, idx) => {
+                const selected = quizAnswers[idx];
+                return (
+                  <li key={`${q.verseNum}-${idx}`} className="brp-quiz-item">
+                    <p className="brp-quiz-prompt">
+                      <strong>{q.verseNum}절</strong> 빈칸에 들어갈 단어는?
+                    </p>
+                    <p className="brp-quiz-blanked">"{q.blanked}"</p>
+                    <div className="brp-quiz-options">
+                      {q.options.map((opt) => {
+                        const isSelected = selected === opt;
+                        const isCorrect = q.correct === opt;
+                        const showCorrect = quizSubmitted && isCorrect;
+                        const showWrong =
+                          quizSubmitted && isSelected && !isCorrect;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            className={`brp-quiz-opt ${
+                              isSelected ? "is-selected" : ""
+                            } ${showCorrect ? "is-correct" : ""} ${
+                              showWrong ? "is-wrong" : ""
+                            }`}
+                            disabled={quizSubmitted}
+                            onClick={() => handleQuizAnswer(idx, opt)}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+
+            {quizSubmitted && (
+              <p
+                className={`brp-quiz-result ${
+                  quizAllCorrect ? "is-pass" : "is-fail"
+                }`}
+              >
+                {quizAllCorrect
+                  ? "잘했어요! 이 장을 완료로 처리할게요."
+                  : "조금 더 읽고 다시 도전해 주세요."}
+              </p>
+            )}
+
+            <div className="brp-quiz-actions">
+              <button
+                type="button"
+                className="brp-quiz-cancel"
+                onClick={handleQuizClose}
+              >
+                나중에
+              </button>
+              {!quizSubmitted ? (
+                <button
+                  type="button"
+                  className="brp-quiz-submit"
+                  disabled={quizAnswers.some((a) => !a)}
+                  onClick={handleQuizSubmit}
+                >
+                  제출하기
+                </button>
+              ) : quizAllCorrect ? (
+                <button
+                  type="button"
+                  className="brp-quiz-submit"
+                  onClick={handleQuizClose}
+                >
+                  닫기
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="brp-quiz-submit"
+                  onClick={handleQuizRetry}
+                >
+                  다시 풀기
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1354,12 +1940,32 @@ export default function BibleReadingPage() {
           column-gap: clamp(8px, 1.2vw, 14px);
           align-items: start;
           margin: 0 0 22px;
+          padding: 4px 8px;
+          border-radius: 10px;
           font-size: clamp(17px, 1.75vw, 21px);
           line-height: 1.9;
           font-weight: 400;
           color: #1a1a1a;
           word-break: keep-all;
           overflow-wrap: normal;
+          transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .brp-verse.is-read {
+          color: #a8403e;
+        }
+
+        .brp-verse.is-read .brp-verse-number {
+          color: rgba(168, 64, 62, 0.7);
+        }
+
+        .brp-verse.is-read .brp-verse-text {
+          font-weight: 600;
+        }
+
+        .brp-verse.is-current {
+          background: rgba(26, 26, 26, 0.05);
+          box-shadow: inset 3px 0 0 #1a1a1a;
         }
 
         .brp-verse-number {
@@ -1368,24 +1974,313 @@ export default function BibleReadingPage() {
           line-height: inherit;
           text-align: right;
           font-variant-numeric: tabular-nums;
+          transition: color 0.3s ease;
         }
 
         .brp-verse-text {
           min-width: 0;
           margin: 0;
           overflow-wrap: break-word;
+          transition: font-weight 0.3s ease;
         }
 
-        .brp-word {
-          display: inline;
-          margin-right: 0.28em;
+        .brp-book-tabs {
+          max-width: 960px;
+          margin: 0 auto 18px;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px;
+          padding: 6px;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(26, 26, 26, 0.1);
+          border-radius: 999px;
+        }
+
+        .brp-book-tab {
+          all: unset;
+          cursor: pointer;
+          box-sizing: border-box;
+          padding: 9px 18px;
+          border-radius: 999px;
+          background: transparent;
+          color: rgba(26, 26, 26, 0.62);
+          font-size: 14px;
+          font-weight: 500;
+          letter-spacing: -0.01em;
+          transition: background 0.18s ease, color 0.18s ease;
+        }
+
+        .brp-book-tab:hover:not(.is-active) {
+          background: rgba(26, 26, 26, 0.05);
+          color: rgba(26, 26, 26, 0.82);
+        }
+
+        .brp-book-tab.is-active {
+          background: #1a1a1a;
+          color: #f7f6f3;
+        }
+
+        .brp-translation button.is-disabled,
+        .brp-translation button:disabled {
+          color: rgba(26, 26, 26, 0.3);
+          cursor: not-allowed;
+          background: transparent;
+        }
+
+        .brp-reader-empty {
+          margin: 0 0 20px;
+          padding: 18px 20px;
+          border-radius: 12px;
+          background: rgba(26, 26, 26, 0.04);
+          color: rgba(26, 26, 26, 0.6);
+          font-size: 14.5px;
+          line-height: 1.7;
+          text-align: center;
+        }
+
+        .brp-mode-tabs {
+          max-width: 960px;
+          margin: 0 auto 22px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(26, 26, 26, 0.1);
+          border-radius: 18px;
+          padding: 6px;
+        }
+
+        .brp-mode-tab {
+          all: unset;
+          cursor: pointer;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          align-items: flex-start;
+          padding: 12px 16px;
+          border-radius: 14px;
+          background: transparent;
+          color: rgba(26, 26, 26, 0.62);
+          transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .brp-mode-tab:hover:not(.is-active) {
+          background: rgba(26, 26, 26, 0.04);
+          color: rgba(26, 26, 26, 0.82);
+        }
+
+        .brp-mode-tab.is-active {
+          background: #1a1a1a;
+          color: #f7f6f3;
+        }
+
+        .brp-mode-tab-name {
+          font-size: 15px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+        }
+
+        .brp-mode-tab-desc {
+          font-size: 12.5px;
+          letter-spacing: -0.005em;
+          opacity: 0.78;
+          line-height: 1.4;
+        }
+
+        .brp-scroll-status {
+          display: inline-flex;
+          align-items: center;
+          padding: 12px 14px;
+          color: rgba(26, 26, 26, 0.62);
+          font-size: 13px;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        .brp-scroll-status.is-ready {
           color: #1a1a1a;
-          transition: color 0.25s ease, font-weight 0.25s ease;
         }
 
-        .brp-word.is-read {
-          color: #a8403e;
-          font-weight: 700;
+        .brp-quiz {
+          position: fixed;
+          inset: 0;
+          z-index: 32;
+          display: grid;
+          place-items: center;
+          padding: 16px;
+          background: rgba(26, 26, 26, 0.42);
+          backdrop-filter: blur(8px);
+        }
+
+        .brp-quiz-card {
+          width: min(94vw, 520px);
+          max-height: 88vh;
+          overflow-y: auto;
+          background: #f7f6f3;
+          border: 1px solid rgba(26, 26, 26, 0.1);
+          border-radius: 18px;
+          padding: 26px;
+          box-shadow: 0 28px 80px rgba(26, 26, 26, 0.2);
+        }
+
+        .brp-quiz-eyebrow {
+          margin: 0 0 8px;
+          font-size: 11px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(26, 26, 26, 0.46);
+        }
+
+        .brp-quiz-card h2 {
+          margin: 0 0 6px;
+          font-size: 22px;
+          font-weight: 600;
+          letter-spacing: -0.02em;
+        }
+
+        .brp-quiz-sub {
+          margin: 0 0 22px;
+          font-size: 13.5px;
+          color: rgba(26, 26, 26, 0.56);
+          line-height: 1.6;
+        }
+
+        .brp-quiz-list {
+          list-style: none;
+          margin: 0 0 18px;
+          padding: 0;
+          display: grid;
+          gap: 18px;
+        }
+
+        .brp-quiz-item {
+          background: #ffffff;
+          border: 1px solid rgba(26, 26, 26, 0.1);
+          border-radius: 14px;
+          padding: 16px 16px 14px;
+        }
+
+        .brp-quiz-prompt {
+          margin: 0 0 8px;
+          font-size: 13px;
+          color: rgba(26, 26, 26, 0.56);
+        }
+
+        .brp-quiz-prompt strong {
+          color: #1a1a1a;
+          font-weight: 600;
+        }
+
+        .brp-quiz-blanked {
+          margin: 0 0 14px;
+          font-size: 15.5px;
+          line-height: 1.7;
+          color: #1a1a1a;
+          word-break: keep-all;
+        }
+
+        .brp-quiz-options {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .brp-quiz-opt {
+          border: 1px solid rgba(26, 26, 26, 0.14);
+          border-radius: 12px;
+          padding: 11px 12px;
+          background: transparent;
+          color: #1a1a1a;
+          font: inherit;
+          font-size: 14.5px;
+          cursor: pointer;
+          text-align: center;
+          transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        }
+
+        .brp-quiz-opt:hover:not(:disabled):not(.is-selected) {
+          background: rgba(26, 26, 26, 0.04);
+        }
+
+        .brp-quiz-opt.is-selected {
+          background: #1a1a1a;
+          border-color: #1a1a1a;
+          color: #f7f6f3;
+        }
+
+        .brp-quiz-opt.is-correct {
+          background: rgba(56, 142, 60, 0.15);
+          border-color: rgba(56, 142, 60, 0.7);
+          color: #2e7d32;
+        }
+
+        .brp-quiz-opt.is-wrong {
+          background: rgba(180, 63, 63, 0.12);
+          border-color: rgba(180, 63, 63, 0.5);
+          color: #b43f3f;
+        }
+
+        .brp-quiz-opt:disabled {
+          cursor: default;
+        }
+
+        .brp-quiz-result {
+          margin: 0 0 14px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-size: 13.5px;
+          font-weight: 600;
+          text-align: center;
+        }
+
+        .brp-quiz-result.is-pass {
+          background: rgba(56, 142, 60, 0.12);
+          color: #2e7d32;
+        }
+
+        .brp-quiz-result.is-fail {
+          background: rgba(180, 63, 63, 0.1);
+          color: #b43f3f;
+        }
+
+        .brp-quiz-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
+        .brp-quiz-cancel,
+        .brp-quiz-submit {
+          border: 0;
+          cursor: pointer;
+          font: inherit;
+          border-radius: 999px;
+          padding: 11px 18px;
+          font-size: 14px;
+        }
+
+        .brp-quiz-cancel {
+          background: transparent;
+          color: rgba(26, 26, 26, 0.65);
+          border: 1px solid rgba(26, 26, 26, 0.16);
+        }
+
+        .brp-quiz-cancel:hover {
+          background: rgba(26, 26, 26, 0.05);
+          color: #1a1a1a;
+        }
+
+        .brp-quiz-submit {
+          background: #1a1a1a;
+          color: #f7f6f3;
+        }
+
+        .brp-quiz-submit:disabled {
+          background: rgba(26, 26, 26, 0.18);
+          color: rgba(247, 246, 243, 0.8);
+          cursor: not-allowed;
         }
 
         .brp-progress-grid {
@@ -1510,6 +2405,7 @@ export default function BibleReadingPage() {
           margin: 0;
           padding: 0;
           display: grid;
+          grid-template-columns: minmax(0, 1fr);
           gap: 10px;
         }
 
@@ -1517,6 +2413,8 @@ export default function BibleReadingPage() {
           background: rgba(255, 255, 255, 0.62);
           border: 1px solid rgba(26, 26, 26, 0.1);
           transition: border-color 0.2s ease, background 0.2s ease;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .brp-prayer-item.is-open {
@@ -1594,6 +2492,11 @@ export default function BibleReadingPage() {
           border-top: 1px solid rgba(26, 26, 26, 0.06);
           display: grid;
           gap: 22px;
+          min-width: 0;
+        }
+
+        .brp-prayer-body > * {
+          min-width: 0;
         }
 
         .brp-prayer-verse {
@@ -1609,6 +2512,7 @@ export default function BibleReadingPage() {
           line-height: 1.85;
           letter-spacing: -0.005em;
           word-break: keep-all;
+          overflow-wrap: anywhere;
         }
 
         .brp-prayer-verse cite {
@@ -1640,6 +2544,8 @@ export default function BibleReadingPage() {
           font-size: 15.5px;
           line-height: 1.9;
           word-break: keep-all;
+          overflow-wrap: anywhere;
+          min-width: 0;
         }
 
         .brp-prayer-text-head {
@@ -1669,11 +2575,20 @@ export default function BibleReadingPage() {
           margin-right: 0.28em;
           color: #1a1a1a;
           transition: color 0.25s ease, font-weight 0.25s ease;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .brp-prayer-word.is-read {
           color: #a8403e;
           font-weight: 700;
+        }
+
+        .brp-prayer-blank {
+          color: rgba(26, 26, 26, 0.42);
+          font-style: italic;
+          font-size: 0.92em;
+          padding: 0 2px;
         }
 
         .brp-prayer-actions {
@@ -2057,9 +2972,98 @@ export default function BibleReadingPage() {
           .brp-verse {
             grid-template-columns: 1.4em minmax(0, 1fr);
             column-gap: 6px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
+            padding: 3px 6px;
             font-size: 16.5px;
             line-height: 1.8;
+          }
+
+          .brp-book-tabs {
+            gap: 4px;
+            padding: 4px;
+            border-radius: 14px;
+            margin-bottom: 12px;
+          }
+
+          .brp-book-tab {
+            padding: 7px 11px;
+            font-size: 12.5px;
+            border-radius: 999px;
+          }
+
+          .brp-mode-tabs {
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            padding: 5px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+          }
+
+          .brp-mode-tab {
+            padding: 9px 10px;
+            border-radius: 10px;
+            gap: 2px;
+          }
+
+          .brp-mode-tab-name {
+            font-size: 13.5px;
+          }
+
+          .brp-mode-tab-desc {
+            font-size: 11px;
+            line-height: 1.35;
+          }
+
+          .brp-quiz {
+            padding: 12px;
+          }
+
+          .brp-quiz-card {
+            padding: 20px 18px;
+            border-radius: 16px;
+          }
+
+          .brp-quiz-card h2 {
+            font-size: 19px;
+          }
+
+          .brp-quiz-sub {
+            font-size: 12.5px;
+            margin-bottom: 18px;
+          }
+
+          .brp-quiz-item {
+            padding: 14px 14px 12px;
+          }
+
+          .brp-quiz-blanked {
+            font-size: 14.5px;
+            line-height: 1.7;
+          }
+
+          .brp-quiz-options {
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+          }
+
+          .brp-quiz-opt {
+            padding: 10px 8px;
+            font-size: 13.5px;
+          }
+
+          .brp-quiz-actions {
+            gap: 6px;
+          }
+
+          .brp-quiz-cancel,
+          .brp-quiz-submit {
+            padding: 10px 14px;
+            font-size: 13px;
+          }
+
+          .brp-scroll-status {
+            padding: 10px 8px;
+            font-size: 12px;
           }
 
           .brp-progress-grid {

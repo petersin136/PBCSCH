@@ -1389,27 +1389,28 @@ export default function Home() {
 
           .top-right {
             position: fixed;
-            top: calc(env(safe-area-inset-top, 0px) + 56px);
-            right: 12px;
+            top: calc(env(safe-area-inset-top, 0px) + 52px);
+            right: 8px;
             left: auto;
             z-index: 200;
             flex-direction: column;
             align-items: stretch;
             gap: 0;
-            min-width: 200px;
-            max-width: calc(100vw - 24px);
-            max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 72px);
+            min-width: 180px;
+            max-width: calc(100vw - 16px);
+            max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 60px);
             overflow-y: auto;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
             background: rgba(37, 99, 235, 0.98);
-            padding: 8px 8px;
+            padding: 6px;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
             opacity: 0;
             pointer-events: none;
             transform: translateY(-8px);
             transition: opacity 0.2s ease, transform 0.2s ease;
+            box-sizing: border-box;
           }
 
           .top-right.is-open {
@@ -1420,12 +1421,13 @@ export default function Home() {
 
           .top-right a {
             font-size: 14px;
-            padding: 12px 14px;
+            padding: 9px 12px;
             border-radius: 8px;
+            line-height: 1.2;
           }
 
           .top-right a + a {
-            margin-top: 2px;
+            margin-top: 1px;
           }
 
           .top-right a:hover,
@@ -1468,7 +1470,7 @@ export default function Home() {
 
         @media (max-width: 640px) {
           .top-right {
-            gap: 14px;
+            gap: 0;
           }
         }
       `}</style>
