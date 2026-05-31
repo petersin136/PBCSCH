@@ -318,7 +318,7 @@ const generateChapterQuiz = (verses: Verse[]): QuizQuestion[] => {
   if (verses.length === 0) return [];
   const wordPool = collectQuizWordPool(verses);
 
-  // 4단어 이상 가진 절 중에서 무작위 2개
+  // 4단어 이상 가진 절 중에서 2~3개 무작위 선택
   const longEnough = verses.filter((verse) => {
     const tokens = verse.t.split(/\s+/).filter((token) => {
       const hangul = token.replace(/[^\u3131-\u318e\uac00-\ud7a3]/g, "");
@@ -328,7 +328,10 @@ const generateChapterQuiz = (verses: Verse[]): QuizQuestion[] => {
   });
 
   const usable = longEnough.length >= 2 ? longEnough : verses;
-  const picked = shuffleArray(usable).slice(0, 2);
+  // 문제 수: 2 또는 3 (랜덤). 사용 가능한 절이 부족하면 그만큼만.
+  const desired = Math.random() < 0.5 ? 2 : 3;
+  const count = Math.min(desired, usable.length);
+  const picked = shuffleArray(usable).slice(0, count);
 
   const questions: QuizQuestion[] = [];
 
@@ -503,6 +506,7 @@ export default function BibleReadingPage() {
   const readVerseCountRef = useRef(0);
   const minReadTimeRef = useRef(0);
   const reachedBottomRef = useRef(false);
+  const readerSectionRef = useRef<HTMLElement | null>(null);
   const prayerListeningRef = useRef<number | null>(null);
   const prayerRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const prayerReadCountRefs = useRef<Record<number, number>>({});
@@ -830,11 +834,12 @@ export default function BibleReadingPage() {
     setReadVerseCount(nextCount);
     setScrollReady(false);
     reachedBottomRef.current = false;
+    // 최소 읽기 시간: 짧은 장은 8초, 긴 장은 본문 길이에 비례 (분당 ~700자 가정)
     minReadTimeRef.current =
       Date.now() +
       Math.max(
-        12000,
-        Math.ceil((verses.map((v) => v.t).join("").length / 500) * 60000),
+        8000,
+        Math.ceil((verses.map((v) => v.t).join("").length / 700) * 60000),
       );
   }, [bookId, chapterNumber, totalVerses, translation, verses]);
 
@@ -1076,10 +1081,24 @@ export default function BibleReadingPage() {
 
   useEffect(() => {
     const onScroll = () => {
-      const bottomDistance =
-        document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
-      if (bottomDistance < 160) {
-        reachedBottomRef.current = true;
+      // 본문(.brp-reader)의 마지막 줄을 지나면 "바닥 도달"로 본다.
+      // 기도카드까지 끝까지 내려갈 필요 없이, 그 장의 마지막 절을 보기만 하면 활성화.
+      const reader = readerSectionRef.current;
+      if (reader) {
+        const rect = reader.getBoundingClientRect();
+        const viewportH = window.innerHeight;
+        // 본문 박스의 하단이 뷰포트 하단보다 약간 위까지 올라왔으면(=마지막 절을 보고 있다는 뜻) 활성화.
+        // dock 높이를 고려해 80px 여유.
+        if (rect.bottom <= viewportH - 80) {
+          reachedBottomRef.current = true;
+        }
+      } else {
+        // ref가 아직 안 잡혔으면 fallback: 페이지 바닥 근처
+        const bottomDistance =
+          document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+        if (bottomDistance < 160) {
+          reachedBottomRef.current = true;
+        }
       }
 
       if (reachedBottomRef.current && Date.now() >= minReadTimeRef.current) {
@@ -1087,14 +1106,17 @@ export default function BibleReadingPage() {
       }
     };
 
+    // 첫 렌더 직후 한 번 호출 — 본문이 매우 짧아 처음부터 화면에 다 들어오는 경우 대비
+    onScroll();
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    const timer = window.setInterval(onScroll, 1000);
+    const timer = window.setInterval(onScroll, 600);
 
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.clearInterval(timer);
     };
-  }, [chapterNumber, translation]);
+  }, [chapterNumber, translation, bookId]);
 
   const handleQuizAnswer = useCallback((idx: number, option: string) => {
     setQuizAnswers((prev) => {
@@ -1266,6 +1288,7 @@ export default function BibleReadingPage() {
       </section>
 
       <section
+        ref={readerSectionRef}
         className="brp-reader"
         aria-label={`${bookMeta.name} ${chapterNumber}장 본문`}
       >
@@ -1552,7 +1575,7 @@ export default function BibleReadingPage() {
             className={`brp-scroll-status ${scrollReady ? "is-ready" : ""}`}
             aria-live="polite"
           >
-            {scrollReady ? "다 읽었어요를 눌러주세요" : "끝까지 스크롤해주세요"}
+            {scrollReady ? "다 읽었어요를 눌러주세요" : "본문 끝까지 읽어주세요"}
           </span>
         )}
         <span className="brp-count">
