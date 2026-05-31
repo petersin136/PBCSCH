@@ -340,6 +340,13 @@ export default function Home() {
             <span />
           </button>
           <nav className={`top-right ${mobileNavOpen ? "is-open" : ""}`}>
+            <a
+              className="nav-bible"
+              href="/bible-reading"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              성경읽기
+            </a>
             {sections.map((section) => (
               <a
                 key={section.id}
@@ -349,9 +356,6 @@ export default function Home() {
                 {section.categoryKr}
               </a>
             ))}
-            <a href="/bible-reading" onClick={() => setMobileNavOpen(false)}>
-              성경읽기
-            </a>
           </nav>
         </header>
         <div className="right-indicators" aria-hidden="true">
@@ -1198,7 +1202,10 @@ export default function Home() {
           position: fixed;
           inset: 0;
           pointer-events: none;
-          z-index: 10;
+          /* 본문 섹션들이 z-10을 쓰는 곳이 있어서 같은 z-index로는 DOM 순서에 밀려
+             드롭다운이 그 섹션에 덮인다. 헤더/드롭다운은 항상 최상단에 떠 있어야 하므로
+             다른 어떤 콘텐츠보다도 확실히 높은 값으로 끌어올린다. */
+          z-index: 9999;
         }
 
         .header {
@@ -1323,6 +1330,12 @@ export default function Home() {
           transition: opacity 0.25s ease, transform 0.25s ease;
         }
 
+        /* 데스크톱 가로 메뉴에서는 성경읽기를 우측 끝으로 보낸다.
+           (모바일 세로 드롭다운에서는 아래 미디어쿼리에서 맨 위로 끌어올림) */
+        .top-right .nav-bible {
+          order: 1;
+        }
+
         .top-right a::after {
           content: "";
           position: absolute;
@@ -1428,6 +1441,17 @@ export default function Home() {
 
           .top-right a + a {
             margin-top: 1px;
+          }
+
+          /* 모바일 드롭다운에서는 성경읽기가 맨 위에 와서 잘리지 않도록 한다. */
+          .top-right .nav-bible {
+            order: -1;
+            background: rgba(255, 255, 255, 0.16);
+          }
+
+          .top-right .nav-bible:hover,
+          .top-right .nav-bible:active {
+            background: rgba(255, 255, 255, 0.26);
           }
 
           .top-right a:hover,

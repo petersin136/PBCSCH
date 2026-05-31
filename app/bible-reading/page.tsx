@@ -106,6 +106,8 @@ const doneKey = (bookId: BookId, chapter: number) =>
   `bible_done_${bookId}_${chapter}`;
 const verseProgressKey = (bookId: BookId, chapter: number) =>
   `bible_verse_progress_${bookId}_${chapter}`;
+const celebratedKey = (bookId: BookId, chapter: number) =>
+  `bible_celebrated_${bookId}_${chapter}`;
 const CURRENT_BOOK_KEY = "bible_current_book";
 const currentChapterKey = (bookId: BookId) =>
   `bible_current_chapter_${bookId}`;
@@ -553,7 +555,15 @@ export default function BibleReadingPage() {
       String(totalVerses),
     );
     setDoneChapters((prev) => new Set(prev).add(chapterNumber));
-    setCompleteVisible(true);
+
+    // 축하 모달은 이 장을 "처음" 완료한 그 순간에만 한 번 띄운다.
+    // 새로고침으로 진행도가 복원되거나, 이미 완료한 장에서 버튼을 또 눌러도 다시 뜨지 않게 한다.
+    const alreadyCelebrated =
+      window.localStorage.getItem(celebratedKey(bookId, chapterNumber)) === "true";
+    if (!alreadyCelebrated) {
+      window.localStorage.setItem(celebratedKey(bookId, chapterNumber), "true");
+      setCompleteVisible(true);
+    }
   }, [bookId, chapterNumber, stopListening, totalVerses]);
 
   const openChapterQuiz = useCallback(() => {
@@ -571,6 +581,23 @@ export default function BibleReadingPage() {
 
   const handleManualFinish = useCallback(() => {
     if (!hasFilledText) return;
+
+    // 이미 다 읽은 장에서 "다 읽었어요"를 다시 누르면, 모달/퀴즈 없이 바로 다음 장으로 넘어간다.
+    if (totalVerses > 0 && readVerseCountRef.current >= totalVerses) {
+      setCompleteVisible(false);
+      if (chapterNumber < bookMeta.totalChapters) {
+        const next = chapterNumber + 1;
+        setChapterNumber(next);
+        setQuizOpen(false);
+        setQuizSubmitted(false);
+        setQuizAnswers([]);
+        setQuizQuestions([]);
+        stopListening();
+        window.localStorage.setItem(currentChapterKey(bookId), String(next));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      return;
+    }
 
     if (readingMode === "mic") {
       // 음성 모드: 절을 80% 이상 잡았으면 바로 완료
@@ -603,10 +630,14 @@ export default function BibleReadingPage() {
     setSpeechMessage("");
     openChapterQuiz();
   }, [
+    bookId,
+    bookMeta.totalChapters,
+    chapterNumber,
     finalizeChapter,
     hasFilledText,
     openChapterQuiz,
     readingMode,
+    stopListening,
     totalVerses,
   ]);
 
@@ -1783,8 +1814,16 @@ export default function BibleReadingPage() {
           <div>
             <p>완료</p>
             <h2>{chapterNumber}장을 다 읽었어요</h2>
-            <button type="button" onClick={() => setCompleteVisible(false)}>
-              계속 보기
+            <button
+              type="button"
+              onClick={() => {
+                setCompleteVisible(false);
+                if (chapterNumber < bookMeta.totalChapters) {
+                  moveChapter(chapterNumber + 1);
+                }
+              }}
+            >
+              {chapterNumber < bookMeta.totalChapters ? "다음 장으로 →" : "닫기"}
             </button>
           </div>
         </div>
