@@ -484,10 +484,16 @@ export default function BibleReadingPage() {
   const [translation, setTranslation] = useState<TranslationKey>("krv");
   const [readingMode, setReadingMode] = useState<ReadingMode>("mic");
   const [readVerseCount, setReadVerseCount] = useState(0);
+  // 현재 듣고 있는 (= 아직 다 안 읽은 첫 번째) 절 안에서, 노래방 가사처럼
+  // 왼쪽부터 색이 차오르도록 단어 단위 진행도를 따로 추적한다.
+  const [currentVerseWordIndex, setCurrentVerseWordIndex] = useState(0);
   const [doneChapters, setDoneChapters] = useState<Set<number>>(new Set());
   const [listening, setListening] = useState(false);
   const [speechMessage, setSpeechMessage] = useState("");
   const [scrollReady, setScrollReady] = useState(false);
+  const [scrollReachedBottom, setScrollReachedBottom] = useState(false);
+  const [scrollSecondsLeft, setScrollSecondsLeft] = useState(0);
+  const [chapterMinSeconds, setChapterMinSeconds] = useState(3);
   const [completeVisible, setCompleteVisible] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
@@ -504,6 +510,7 @@ export default function BibleReadingPage() {
   const listeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const readVerseCountRef = useRef(0);
+  const currentVerseWordIndexRef = useRef(0);
   const minReadTimeRef = useRef(0);
   const reachedBottomRef = useRef(false);
   const readerSectionRef = useRef<HTMLElement | null>(null);
@@ -577,20 +584,28 @@ export default function BibleReadingPage() {
       return;
     }
 
-    // 스크롤 모드: 짧은 퀴즈로 확인
-    if (!scrollReady) {
+    // 스크롤 모드: 본문 끝까지 + 최소 시간 모두 충족해야 퀴즈로 진행
+    if (!reachedBottomRef.current) {
       setSpeechMessage(
-        "조금 더 천천히 읽어 주세요. 끝까지 스크롤하고 다시 눌러주세요.",
+        "아직 본문을 다 보지 않았어요. 마지막 절까지 내려서 읽어 주세요.",
       );
       return;
     }
+    const remainingMs = minReadTimeRef.current - Date.now();
+    if (remainingMs > 0) {
+      const sec = Math.ceil(remainingMs / 1000);
+      setSpeechMessage(
+        `조금만 더 천천히 읽어 주세요. ${sec}초 후에 다시 눌러주세요.`,
+      );
+      return;
+    }
+    setSpeechMessage("");
     openChapterQuiz();
   }, [
     finalizeChapter,
     hasFilledText,
     openChapterQuiz,
     readingMode,
-    scrollReady,
     totalVerses,
   ]);
 
@@ -598,6 +613,8 @@ export default function BibleReadingPage() {
     stopListening();
     readVerseCountRef.current = 0;
     setReadVerseCount(0);
+    currentVerseWordIndexRef.current = 0;
+    setCurrentVerseWordIndex(0);
     setCompleteVisible(false);
     setSpeechMessage("");
     setQuizOpen(false);
@@ -618,14 +635,43 @@ export default function BibleReadingPage() {
     (transcript: string) => {
       if (!hasFilledText) return;
       const detected = countReadVerses(transcript, verses);
-      if (detected > readVerseCountRef.current) {
-        const clamped = Math.min(totalVerses, detected);
-        readVerseCountRef.current = clamped;
-        setReadVerseCount(clamped);
+      let nextVerseCount = readVerseCountRef.current;
+      if (detected > nextVerseCount) {
+        nextVerseCount = Math.min(totalVerses, detected);
+        readVerseCountRef.current = nextVerseCount;
+        setReadVerseCount(nextVerseCount);
         window.localStorage.setItem(
           verseProgressKey(bookId, chapterNumber),
-          String(clamped),
+          String(nextVerseCount),
         );
+        // 절이 넘어갔으니 단어 진행도는 0부터 다시 차오른다.
+        currentVerseWordIndexRef.current = 0;
+        setCurrentVerseWordIndex(0);
+      }
+
+      // 현재(아직 안 읽힌 첫 번째) 절 안에서 단어 단위로 색이 차오르도록
+      // 진행 인덱스를 advance 한다. 절 단위 매칭(countReadVerses)이 절을
+      // 통째로 "읽음" 처리하기 전까지, 단어들이 왼쪽부터 순서대로 색이 바뀐다.
+      if (nextVerseCount < totalVerses) {
+        const verse = verses[nextVerseCount];
+        const tokens: WordToken[] = verse.t
+          .split(/\s+/)
+          .map((w) => w.trim())
+          .filter(Boolean)
+          .map((word, index) => ({
+            id: `verse-${verse.n}-${index}`,
+            verse: verse.n,
+            text: word,
+            normalized: normalizeKorean(word),
+          }));
+        if (tokens.length > 0) {
+          const startIdx = currentVerseWordIndexRef.current;
+          const nextIdx = advanceReadIndex(transcript, tokens, startIdx);
+          if (nextIdx > startIdx) {
+            currentVerseWordIndexRef.current = nextIdx;
+            setCurrentVerseWordIndex(nextIdx);
+          }
+        }
       }
     },
     [bookId, chapterNumber, hasFilledText, totalVerses, verses],
@@ -832,15 +878,29 @@ export default function BibleReadingPage() {
 
     readVerseCountRef.current = nextCount;
     setReadVerseCount(nextCount);
+    currentVerseWordIndexRef.current = 0;
+    setCurrentVerseWordIndex(0);
     setScrollReady(false);
+    setScrollReachedBottom(false);
     reachedBottomRef.current = false;
-    // 최소 읽기 시간: 짧은 장은 8초, 긴 장은 본문 길이에 비례 (분당 ~700자 가정)
-    minReadTimeRef.current =
-      Date.now() +
-      Math.max(
-        8000,
-        Math.ceil((verses.map((v) => v.t).join("").length / 700) * 60000),
-      );
+
+    // 장마다 최소 읽기 시간: 단어 수 + 절 수 기반으로 동적 계산.
+    // - 묵독 속도 가정: ~150 단어/분 → 단어당 0.4초
+    // - 절마다 시선 이동/번호 인지: 0.4초 추가
+    // - 짧은 본문은 최소 3초 보장
+    const wordCount = verses.reduce(
+      (sum, verse) =>
+        sum + verse.t.split(/\s+/).filter(Boolean).length,
+      0,
+    );
+    const verseCount = verses.length;
+    const computedSeconds = Math.max(
+      3,
+      Math.round(verseCount * 0.4 + wordCount * 0.4),
+    );
+    setChapterMinSeconds(computedSeconds);
+    setScrollSecondsLeft(computedSeconds);
+    minReadTimeRef.current = Date.now() + computedSeconds * 1000;
   }, [bookId, chapterNumber, totalVerses, translation, verses]);
 
   useEffect(() => {
@@ -1080,7 +1140,7 @@ export default function BibleReadingPage() {
   }, []);
 
   useEffect(() => {
-    const onScroll = () => {
+    const tick = () => {
       // 본문(.brp-reader)의 마지막 줄을 지나면 "바닥 도달"로 본다.
       // 기도카드까지 끝까지 내려갈 필요 없이, 그 장의 마지막 절을 보기만 하면 활성화.
       const reader = readerSectionRef.current;
@@ -1088,32 +1148,41 @@ export default function BibleReadingPage() {
         const rect = reader.getBoundingClientRect();
         const viewportH = window.innerHeight;
         // 본문 박스의 하단이 뷰포트 하단보다 약간 위까지 올라왔으면(=마지막 절을 보고 있다는 뜻) 활성화.
-        // dock 높이를 고려해 80px 여유.
         if (rect.bottom <= viewportH - 80) {
-          reachedBottomRef.current = true;
+          if (!reachedBottomRef.current) {
+            reachedBottomRef.current = true;
+            setScrollReachedBottom(true);
+          }
         }
       } else {
         // ref가 아직 안 잡혔으면 fallback: 페이지 바닥 근처
         const bottomDistance =
           document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
         if (bottomDistance < 160) {
-          reachedBottomRef.current = true;
+          if (!reachedBottomRef.current) {
+            reachedBottomRef.current = true;
+            setScrollReachedBottom(true);
+          }
         }
       }
 
-      if (reachedBottomRef.current && Date.now() >= minReadTimeRef.current) {
+      const remainingMs = Math.max(0, minReadTimeRef.current - Date.now());
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      setScrollSecondsLeft(remainingSec);
+
+      if (reachedBottomRef.current && remainingMs === 0) {
         setScrollReady(true);
       }
     };
 
     // 첫 렌더 직후 한 번 호출 — 본문이 매우 짧아 처음부터 화면에 다 들어오는 경우 대비
-    onScroll();
+    tick();
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    const timer = window.setInterval(onScroll, 600);
+    window.addEventListener("scroll", tick, { passive: true });
+    const timer = window.setInterval(tick, 500);
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", tick);
       window.clearInterval(timer);
     };
   }, [chapterNumber, translation, bookId]);
@@ -1251,7 +1320,7 @@ export default function BibleReadingPage() {
                 disabled={isKrvDisabled}
                 title={
                   isKrvDisabled
-                    ? "이 책의 개역개정 본문은 아직 준비되지 않았어요."
+                    ? "이 책의 개역한글 본문은 아직 준비되지 않았어요."
                     : undefined
                 }
                 onClick={() => setTranslation(key)}
@@ -1294,7 +1363,7 @@ export default function BibleReadingPage() {
       >
         {!hasFilledText && (
           <p className="brp-reader-empty">
-            이 장의 {translation === "krv" ? "개역개정" : "어린이 쉬운"} 본문이
+            이 장의 {translation === "krv" ? "개역한글" : "어린이 쉬운"} 본문이
             아직 준비되지 않았어요. 다른 번역을 선택해 보세요.
           </p>
         )}
@@ -1302,6 +1371,9 @@ export default function BibleReadingPage() {
           const isRead = idx < readVerseCount;
           const isCurrent =
             !isRead && idx === readVerseCount && readingMode === "mic" && listening;
+          const karaokeWords = isCurrent
+            ? verse.t.split(/\s+/).filter(Boolean)
+            : null;
           return (
             <div
               key={`${bookId}-${chapterNumber}-${effectiveTranslation}-${verse.n}`}
@@ -1310,7 +1382,22 @@ export default function BibleReadingPage() {
               }`}
             >
               <span className="brp-verse-number">{verse.n}</span>
-              <p className="brp-verse-text">{verse.t}</p>
+              {karaokeWords ? (
+                <p className="brp-verse-text">
+                  {karaokeWords.map((word, wIdx) => (
+                    <span
+                      key={`${verse.n}-${wIdx}`}
+                      className={`brp-verse-word ${
+                        wIdx < currentVerseWordIndex ? "is-read" : ""
+                      }`}
+                    >
+                      {word}
+                    </span>
+                  ))}
+                </p>
+              ) : (
+                <p className="brp-verse-text">{verse.t}</p>
+              )}
             </div>
           );
         })}
@@ -1574,8 +1661,13 @@ export default function BibleReadingPage() {
           <span
             className={`brp-scroll-status ${scrollReady ? "is-ready" : ""}`}
             aria-live="polite"
+            title={`이 장 최소 ${chapterMinSeconds}초`}
           >
-            {scrollReady ? "다 읽었어요를 눌러주세요" : "본문 끝까지 읽어주세요"}
+            {scrollReady
+              ? "다 읽었어요를 눌러주세요"
+              : !scrollReachedBottom
+              ? `본문 끝까지 (≥${chapterMinSeconds}초)`
+              : `${scrollSecondsLeft}초만 더 천천히`}
           </span>
         )}
         <span className="brp-count">
@@ -1592,13 +1684,21 @@ export default function BibleReadingPage() {
         </button>
         <button
           type="button"
-          className="brp-manual"
+          className={`brp-manual ${
+            (
+              readingMode === "mic"
+                ? readVerseCount < Math.max(1, Math.floor(totalVerses * 0.8))
+                : !scrollReady
+            )
+              ? "is-pending"
+              : ""
+          }`}
           onClick={handleManualFinish}
-          disabled={
-            !hasFilledText ||
-            (readingMode === "mic"
+          disabled={!hasFilledText}
+          aria-disabled={
+            readingMode === "mic"
               ? readVerseCount < Math.max(1, Math.floor(totalVerses * 0.8))
-              : !scrollReady)
+              : !scrollReady
           }
         >
           다 읽었어요
@@ -2005,6 +2105,18 @@ export default function BibleReadingPage() {
           margin: 0;
           overflow-wrap: break-word;
           transition: font-weight 0.3s ease;
+        }
+
+        .brp-verse-word {
+          display: inline;
+          margin-right: 0.28em;
+          color: inherit;
+          transition: color 0.28s ease, font-weight 0.28s ease;
+        }
+
+        .brp-verse-word.is-read {
+          color: #a8403e;
+          font-weight: 600;
         }
 
         .brp-book-tabs {
@@ -2763,6 +2875,16 @@ export default function BibleReadingPage() {
           background: #1a1a1a;
           color: #f7f6f3;
           white-space: nowrap;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .brp-manual.is-pending {
+          background: rgba(26, 26, 26, 0.18);
+          color: rgba(247, 246, 243, 0.85);
+        }
+
+        .brp-manual.is-pending:hover {
+          background: rgba(26, 26, 26, 0.28);
         }
 
         .brp-reset {
