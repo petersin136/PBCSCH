@@ -898,6 +898,9 @@ export default function Home() {
             <span>© {new Date().getFullYear()} PBCSCH. All rights reserved.</span>
             <span className="flex items-center gap-3">
               포천중앙침례교회 주일학교
+              <a className="admin-key admin-key-footer" href="/teacher" aria-label="담임 선생님 대시보드" title="담임 선생님 대시보드">
+                📖
+              </a>
               <a className="admin-key admin-key-footer" href="/manage" aria-label="관리자 페이지">
                 🔒
               </a>
