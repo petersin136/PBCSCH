@@ -420,8 +420,9 @@ const advanceReadIndex = (
 
   // 한 번 매칭에 실패한 음성 단어가 연속으로 누적되면 더 이상 진행하지 않는다.
   // (이전 절 음성 잔여물이 다음 절 단어와 부분 일치해 과도하게 advance 되는 것 방지)
+  // 첫 단어를 잘 못 잡힐 때도 진행이 끊기지 않도록 임계값을 조금 풀어둔다.
   let consecutiveMisses = 0;
-  const MAX_CONSECUTIVE_MISSES = 6;
+  const MAX_CONSECUTIVE_MISSES = 10;
 
   for (const spoken of spokenWords) {
     if (consecutiveMisses >= MAX_CONSECUTIVE_MISSES) break;
@@ -441,8 +442,8 @@ const advanceReadIndex = (
     }
 
     let jumped = false;
-    // 점프는 최대 2칸까지만 허용 — 3칸 이상이면 잘못 건너뛴 가능성 높음.
-    for (let offset = 1; offset <= 2; offset += 1) {
+    // 첫 단어가 음성에서 누락되는 경우가 많아 최대 3칸까지 점프 허용.
+    for (let offset = 1; offset <= 3; offset += 1) {
       const candidate = words[nextIndex + offset];
       if (!candidate) break;
       if (!canJumpTo(nextIndex + offset)) break;
@@ -631,50 +632,104 @@ export default function BibleReadingPage() {
     });
   }, [bookId, chapterNumber, stopListening]);
 
-  const processTranscript = useCallback(
-    (transcript: string) => {
-      if (!hasFilledText) return;
-      const detected = countReadVerses(transcript, verses);
-      let nextVerseCount = readVerseCountRef.current;
-      if (detected > nextVerseCount) {
-        nextVerseCount = Math.min(totalVerses, detected);
-        readVerseCountRef.current = nextVerseCount;
-        setReadVerseCount(nextVerseCount);
-        window.localStorage.setItem(
-          verseProgressKey(bookId, chapterNumber),
-          String(nextVerseCount),
-        );
-        // 절이 넘어갔으니 단어 진행도는 0부터 다시 차오른다.
-        currentVerseWordIndexRef.current = 0;
-        setCurrentVerseWordIndex(0);
-      }
+  // 장 전체 단어를 평탄화한 토큰 리스트.
+  // 단어 단위 advance 후 절/절 안 인덱스로 역산해서 노래방 가사처럼
+  // 왼쪽부터 차오르고, "다음 절의 단어가 잡히기 시작할 때" 비로소
+  // 이전 절이 통째로 '읽음' 처리되도록 한다.
+  const chapterTokens = useMemo<WordToken[]>(() => {
+    return verses.flatMap((verse) =>
+      verse.t
+        .split(/\s+/)
+        .map((w) => w.trim())
+        .filter(Boolean)
+        .map((word, index) => ({
+          id: `verse-${verse.n}-${index}`,
+          verse: verse.n,
+          text: word,
+          normalized: normalizeKorean(word),
+        })),
+    );
+  }, [verses]);
 
-      // 현재(아직 안 읽힌 첫 번째) 절 안에서 단어 단위로 색이 차오르도록
-      // 진행 인덱스를 advance 한다. 절 단위 매칭(countReadVerses)이 절을
-      // 통째로 "읽음" 처리하기 전까지, 단어들이 왼쪽부터 순서대로 색이 바뀐다.
-      if (nextVerseCount < totalVerses) {
-        const verse = verses[nextVerseCount];
-        const tokens: WordToken[] = verse.t
-          .split(/\s+/)
-          .map((w) => w.trim())
-          .filter(Boolean)
-          .map((word, index) => ({
-            id: `verse-${verse.n}-${index}`,
-            verse: verse.n,
-            text: word,
-            normalized: normalizeKorean(word),
-          }));
-        if (tokens.length > 0) {
-          const startIdx = currentVerseWordIndexRef.current;
-          const nextIdx = advanceReadIndex(transcript, tokens, startIdx);
-          if (nextIdx > startIdx) {
-            currentVerseWordIndexRef.current = nextIdx;
-            setCurrentVerseWordIndex(nextIdx);
-          }
+  const verseWordCounts = useMemo(
+    () =>
+      verses.map(
+        (v) =>
+          v.t
+            .split(/\s+/)
+            .map((w) => w.trim())
+            .filter(Boolean).length,
+      ),
+    [verses],
+  );
+
+  const wordIndexFromVerseProgress = useCallback(
+    (verseCount: number, wordInVerse: number) => {
+      let total = 0;
+      const cap = Math.min(verseCount, verseWordCounts.length);
+      for (let i = 0; i < cap; i += 1) total += verseWordCounts[i];
+      return total + wordInVerse;
+    },
+    [verseWordCounts],
+  );
+
+  const verseProgressFromWordIndex = useCallback(
+    (wordIdx: number) => {
+      let vc = 0;
+      let remaining = wordIdx;
+      for (const c of verseWordCounts) {
+        if (remaining >= c) {
+          vc += 1;
+          remaining -= c;
+        } else {
+          break;
         }
       }
+      return { verseCount: vc, wordInVerse: remaining };
     },
-    [bookId, chapterNumber, hasFilledText, totalVerses, verses],
+    [verseWordCounts],
+  );
+
+  const processTranscript = useCallback(
+    (transcript: string) => {
+      if (!hasFilledText || chapterTokens.length === 0) return;
+      const startGlobalIdx = wordIndexFromVerseProgress(
+        readVerseCountRef.current,
+        currentVerseWordIndexRef.current,
+      );
+      if (startGlobalIdx >= chapterTokens.length) return;
+
+      const newGlobalIdx = advanceReadIndex(
+        transcript,
+        chapterTokens,
+        startGlobalIdx,
+      );
+      if (newGlobalIdx <= startGlobalIdx) return;
+
+      const { verseCount: newVerseCount, wordInVerse: newWordInVerse } =
+        verseProgressFromWordIndex(newGlobalIdx);
+
+      if (newVerseCount !== readVerseCountRef.current) {
+        readVerseCountRef.current = newVerseCount;
+        setReadVerseCount(newVerseCount);
+        window.localStorage.setItem(
+          verseProgressKey(bookId, chapterNumber),
+          String(newVerseCount),
+        );
+      }
+      if (newWordInVerse !== currentVerseWordIndexRef.current) {
+        currentVerseWordIndexRef.current = newWordInVerse;
+        setCurrentVerseWordIndex(newWordInVerse);
+      }
+    },
+    [
+      bookId,
+      chapterNumber,
+      chapterTokens,
+      hasFilledText,
+      verseProgressFromWordIndex,
+      wordIndexFromVerseProgress,
+    ],
   );
 
   const handleReadingModeChange = useCallback(
@@ -1248,7 +1303,7 @@ export default function BibleReadingPage() {
       </div>
 
       <section className="brp-hero">
-        <p className="brp-eyebrow">말씀 성경 읽기 프로젝트</p>
+        <p className="brp-eyebrow">포천중앙침례교회 주일학교 말씀 성경 읽기 프로젝트</p>
         <h1>{bookMeta.name} 통독</h1>
         <p>
           하루 한 장씩 읽어요. 읽은 절은 차분한 색으로 표시되고,
@@ -1368,9 +1423,20 @@ export default function BibleReadingPage() {
           </p>
         )}
         {verses.map((verse, idx) => {
-          const isRead = idx < readVerseCount;
+          // 스크롤 모드는 "스크롤 + 최소 시간 + 퀴즈"가 모두 끝나
+          // 장 자체가 완료(readVerseCount === totalVerses)됐을 때만
+          // 절 색을 바꾼다. 그 외에는 절별 진행 색을 절대 표시하지 않는다.
+          const chapterFullyRead =
+            totalVerses > 0 && readVerseCount >= totalVerses;
+          const isRead =
+            readingMode === "scroll"
+              ? chapterFullyRead
+              : idx < readVerseCount;
           const isCurrent =
-            !isRead && idx === readVerseCount && readingMode === "mic" && listening;
+            readingMode === "mic" &&
+            listening &&
+            !isRead &&
+            idx === readVerseCount;
           const karaokeWords = isCurrent
             ? verse.t.split(/\s+/).filter(Boolean)
             : null;
@@ -1910,6 +1976,15 @@ export default function BibleReadingPage() {
           color: rgba(26, 26, 26, 0.46);
         }
 
+        .brp-hero .brp-eyebrow {
+          font-size: clamp(15px, 1.6vw, 18px);
+          letter-spacing: 0.06em;
+          text-transform: none;
+          font-weight: 500;
+          color: rgba(26, 26, 26, 0.62);
+          margin-bottom: 18px;
+        }
+
         .brp-hero h1 {
           margin: 0;
           font-family: Pretendard, "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -1934,19 +2009,28 @@ export default function BibleReadingPage() {
           max-width: 960px;
           margin: 0 auto 36px;
           display: grid;
-          grid-template-columns: 1fr auto;
-          align-items: center;
+          grid-template-columns: 1fr 1fr;
+          align-items: stretch;
           gap: 18px;
         }
 
         .brp-translation,
         .brp-chapter-switcher {
-          display: inline-flex;
+          display: flex;
           align-items: center;
+          justify-content: center;
           background: rgba(255, 255, 255, 0.7);
           border: 1px solid rgba(26, 26, 26, 0.1);
           border-radius: 999px;
           padding: 5px;
+          min-height: 56px;
+          box-sizing: border-box;
+        }
+
+        .brp-translation {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
         }
 
         .brp-translation button,
@@ -1960,10 +2044,19 @@ export default function BibleReadingPage() {
         }
 
         .brp-translation button {
-          padding: 9px 14px;
+          width: 100%;
+          padding: 11px 14px;
           border-radius: 999px;
           background: transparent;
           color: rgba(26, 26, 26, 0.58);
+          font-weight: 500;
+          letter-spacing: -0.01em;
+          transition: background 0.18s ease, color 0.18s ease;
+        }
+
+        .brp-translation button:hover:not(:disabled):not(.is-active) {
+          background: rgba(26, 26, 26, 0.05);
+          color: rgba(26, 26, 26, 0.82);
         }
 
         .brp-translation button.is-active {
@@ -1973,8 +2066,6 @@ export default function BibleReadingPage() {
 
         .brp-chapter-switcher {
           gap: 10px;
-          min-width: 280px;
-          justify-content: center;
         }
 
         .brp-chapter-switcher button {
@@ -2136,11 +2227,11 @@ export default function BibleReadingPage() {
           all: unset;
           cursor: pointer;
           box-sizing: border-box;
-          padding: 9px 18px;
+          padding: 11px 22px;
           border-radius: 999px;
           background: transparent;
           color: rgba(26, 26, 26, 0.62);
-          font-size: 14px;
+          font-size: 17px;
           font-weight: 500;
           letter-spacing: -0.01em;
           transition: background 0.18s ease, color 0.18s ease;
@@ -3076,6 +3167,12 @@ export default function BibleReadingPage() {
             letter-spacing: 0.16em;
           }
 
+          .brp-hero .brp-eyebrow {
+            font-size: 13.5px;
+            letter-spacing: 0.04em;
+            margin-bottom: 12px;
+          }
+
           .brp-hero h1 {
             font-size: clamp(28px, 8.4vw, 38px);
             letter-spacing: -0.04em;
@@ -3131,8 +3228,8 @@ export default function BibleReadingPage() {
           }
 
           .brp-book-tab {
-            padding: 7px 11px;
-            font-size: 12.5px;
+            padding: 8px 13px;
+            font-size: 14.5px;
             border-radius: 999px;
           }
 
