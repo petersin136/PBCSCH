@@ -2329,7 +2329,8 @@ export default function BibleReadingPage() {
           display: flex;
           flex-direction: column;
           gap: 4px;
-          align-items: flex-start;
+          align-items: center;
+          text-align: center;
           padding: 12px 16px;
           border-radius: 14px;
           background: transparent;
