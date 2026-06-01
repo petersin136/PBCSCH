@@ -658,6 +658,12 @@ const styles = `
     outline: none;
     font-family: inherit;
     line-height: 1.3;
+    /* select 가 가장 긴 option 만큼 늘어나지 않도록 부모 폭에 맞춰 잠근다. */
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
   }
   .tch-field input:focus,
   .tch-control select:focus,
@@ -720,6 +726,10 @@ const styles = `
     display: flex;
     flex-direction: column;
     gap: 6px;
+    /* grid 아이템은 기본 min-width 가 min-content 라서, select 의 가장 긴
+       option 텍스트 길이만큼 셀이 부풀어 부모 폭을 넘어가는 일이 발생한다.
+       0 으로 풀어줘야 부모 grid track(1fr)에 맞게 줄어든다. */
+    min-width: 0;
   }
   .tch-control span {
     font-size: 11px;
