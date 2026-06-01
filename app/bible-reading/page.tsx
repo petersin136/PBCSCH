@@ -8,6 +8,13 @@ import lukeData from "./luke.json";
 import johnData from "./john.json";
 import prayersJson from "./prayers.json";
 import { BOOKS, BOOK_ORDER, type BookId } from "./books";
+import StudentIdentityBar from "./components/StudentIdentityBar";
+import {
+  fetchCompletedChapters,
+  flushPendingLogs,
+  recordChapterCompletion,
+  type IdentifiedStudent,
+} from "../lib/bibleReadingProgress";
 
 type TranslationKey = "krv" | "kids";
 
@@ -167,38 +174,57 @@ const normalizeKorean = (value: string) => {
   return text;
 };
 
+// 머리 음절이 몇 개나 연속으로 일치하는지 센다.
+const countLeadingMatch = (a: string, b: string) => {
+  const len = Math.min(a.length, b.length);
+  let matched = 0;
+  for (let i = 0; i < len; i += 1) {
+    if (a[i] !== b[i]) break;
+    matched += 1;
+  }
+  return matched;
+};
+
+// 일반(절 내부) 매칭. 음성 인식 잡음을 어느 정도 흡수하되,
+// "앞 2글자만 같으면 통과" 같은 과도한 허용은 제거해 오매칭을 줄인다.
 const isLooseMatch = (spoken: string, target: string) => {
   if (!spoken || !target) return false;
   if (spoken === target) return true;
 
-  if (spoken.startsWith(target) || target.startsWith(spoken)) {
+  const shorter = Math.min(spoken.length, target.length);
+
+  // 한쪽이 다른 쪽의 접두사 (조사/어미 차이) — 최소 2음절 이상 공유해야 인정
+  if (shorter >= 2 && (spoken.startsWith(target) || target.startsWith(spoken))) {
     return true;
   }
 
+  // 아주 짧은 단어(1음절)는 첫 음절이 같고 길이 차가 1 이내일 때만
   if (target.length <= 1 || spoken.length <= 1) {
-    return spoken[0] === target[0];
+    return spoken[0] === target[0] && Math.abs(spoken.length - target.length) <= 1;
   }
 
-  if (target.includes(spoken) || spoken.includes(target)) {
+  // 머리 음절 60% 이상(최소 2음절) 연속 일치
+  const matched = countLeadingMatch(spoken, target);
+  const need = Math.max(2, Math.ceil(shorter * 0.6));
+  return matched >= need;
+};
+
+// 강한 매칭. 절 경계를 넘어 "다음 절의 첫 단어"로 진입할 때만 사용한다.
+// 다음 절로 넘어가는 판정이라 보수적으로(거의 정확히) 일치할 때만 허용한다.
+const isStrongMatch = (spoken: string, target: string) => {
+  if (!spoken || !target) return false;
+  if (spoken === target) return true;
+
+  const shorter = Math.min(spoken.length, target.length);
+
+  if (shorter >= 2 && (spoken.startsWith(target) || target.startsWith(spoken))) {
     return true;
   }
 
-  // Count syllables that match at the head; accept >=50% (min 1).
-  let matched = 0;
-  for (let i = 0; i < Math.min(spoken.length, target.length); i += 1) {
-    if (spoken[i] !== target[i]) break;
-    matched += 1;
-  }
-
-  const minLength = Math.max(1, Math.floor(Math.min(spoken.length, target.length) * 0.5));
-  if (matched >= minLength) return true;
-
-  // Last resort: overlap of 2+ characters anywhere in the head/tail boundary.
-  if (target.length >= 3 && spoken.length >= 3) {
-    if (spoken.slice(0, 2) === target.slice(0, 2)) return true;
-  }
-
-  return false;
+  const matched = countLeadingMatch(spoken, target);
+  // 1~2음절 단어는 전부 일치해야 하고, 그 이상은 머리 70% 이상 일치해야 한다.
+  if (target.length <= 2) return matched >= target.length;
+  return matched >= Math.ceil(target.length * 0.7);
 };
 
 const getSpeechRecognition = (): SpeechRecognitionConstructor | null => {
@@ -407,6 +433,27 @@ const advanceReadIndex = (
 
   let nextIndex = skipEmpty(startIndex);
 
+  // 해당 인덱스의 단어가 "새로운 절의 첫 단어"인지 판단한다.
+  const startsNewVerse = (idx: number) => {
+    if (idx <= 0) return false;
+    let prev = idx - 1;
+    while (prev >= 0 && words[prev] && words[prev].normalized === "") prev -= 1;
+    if (prev < 0) return false;
+    const cur = words[idx];
+    const before = words[prev];
+    if (!cur || !before) return false;
+    return cur.verse !== before.verse;
+  };
+
+  // words[idx] 단어를 "읽음"으로 소비할 수 있는지. 절 경계를 넘는
+  // (= 다음 절의 첫 단어) 경우에는 강한 일치가 있어야만 진입을 허용한다.
+  const acceptsStep = (spoken: string, idx: number) => {
+    const w = words[idx];
+    if (!w) return false;
+    if (startsNewVerse(idx)) return isStrongMatch(spoken, w.normalized);
+    return isLooseMatch(spoken, w.normalized);
+  };
+
   const canJumpTo = (toIndex: number) => {
     if (toIndex <= nextIndex) return false;
     const seen = new Set<string>();
@@ -420,19 +467,17 @@ const advanceReadIndex = (
     return true;
   };
 
-  // 한 번 매칭에 실패한 음성 단어가 연속으로 누적되면 더 이상 진행하지 않는다.
+  // 매칭에 실패한 음성 단어가 연속으로 누적되면 더 이상 진행하지 않는다.
   // (이전 절 음성 잔여물이 다음 절 단어와 부분 일치해 과도하게 advance 되는 것 방지)
-  // 첫 단어를 잘 못 잡힐 때도 진행이 끊기지 않도록 임계값을 조금 풀어둔다.
   let consecutiveMisses = 0;
-  const MAX_CONSECUTIVE_MISSES = 10;
+  const MAX_CONSECUTIVE_MISSES = 6;
 
   for (const spoken of spokenWords) {
     if (consecutiveMisses >= MAX_CONSECUTIVE_MISSES) break;
     nextIndex = skipEmpty(nextIndex);
     if (nextIndex >= words.length) break;
 
-    const current = words[nextIndex];
-    if (current && isLooseMatch(spoken, current.normalized)) {
+    if (acceptsStep(spoken, nextIndex)) {
       nextIndex = skipEmpty(nextIndex + 1);
       consecutiveMisses = 0;
       continue;
@@ -443,11 +488,15 @@ const advanceReadIndex = (
       continue;
     }
 
+    // 점프는 "같은 절 안에서만" 최대 2칸까지 허용한다.
+    // 절 경계를 점프로 건너뛰면 안 된다(현재 절의 뒷부분을 건너뛰고
+    // 다음 절로 미끄러져 들어가는 현상의 원인).
     let jumped = false;
-    // 첫 단어가 음성에서 누락되는 경우가 많아 최대 3칸까지 점프 허용.
-    for (let offset = 1; offset <= 3; offset += 1) {
+    const baseVerse = words[nextIndex] ? words[nextIndex].verse : -1;
+    for (let offset = 1; offset <= 2; offset += 1) {
       const candidate = words[nextIndex + offset];
       if (!candidate) break;
+      if (candidate.verse !== baseVerse) break;
       if (!canJumpTo(nextIndex + offset)) break;
       if (isLooseMatch(spoken, candidate.normalized)) {
         nextIndex = skipEmpty(nextIndex + offset + 1);
@@ -513,6 +562,9 @@ export default function BibleReadingPage() {
   // 마이크 버튼이 disabled 상태로 멈춰버리는 일이 있다. 기본값을 true로 두고
   // 클라이언트 마운트 후 실제 API 지원 여부로 보정한다.
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [currentStudent, setCurrentStudent] = useState<IdentifiedStudent | null>(
+    null,
+  );
 
   const listeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -524,6 +576,18 @@ export default function BibleReadingPage() {
   const prayerListeningRef = useRef<number | null>(null);
   const prayerRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const prayerReadCountRefs = useRef<Record<number, number>>({});
+  const currentStudentRef = useRef<IdentifiedStudent | null>(null);
+
+  useEffect(() => {
+    currentStudentRef.current = currentStudent;
+  }, [currentStudent]);
+
+  const handleStudentChange = useCallback(
+    (next: IdentifiedStudent | null) => {
+      setCurrentStudent(next);
+    },
+    [],
+  );
 
   const bookMeta = BOOKS[bookId];
   const data = BOOK_DATA[bookId];
@@ -559,15 +623,23 @@ export default function BibleReadingPage() {
     );
     setDoneChapters((prev) => new Set(prev).add(chapterNumber));
 
-    // 축하 모달은 이 장을 "처음" 완료한 그 순간에만 한 번 띄운다.
-    // 새로고침으로 진행도가 복원되거나, 이미 완료한 장에서 버튼을 또 눌러도 다시 뜨지 않게 한다.
+    const student = currentStudentRef.current;
+    if (student) {
+      void recordChapterCompletion({
+        student,
+        book: bookId,
+        chapter: chapterNumber,
+        translation: effectiveTranslation,
+      });
+    }
+
     const alreadyCelebrated =
       window.localStorage.getItem(celebratedKey(bookId, chapterNumber)) === "true";
     if (!alreadyCelebrated) {
       window.localStorage.setItem(celebratedKey(bookId, chapterNumber), "true");
       setCompleteVisible(true);
     }
-  }, [bookId, chapterNumber, stopListening, totalVerses]);
+  }, [bookId, chapterNumber, effectiveTranslation, stopListening, totalVerses]);
 
   const openChapterQuiz = useCallback(() => {
     if (!hasFilledText) return;
@@ -954,7 +1026,42 @@ export default function BibleReadingPage() {
       }
     });
     setDoneChapters(done);
-  }, [bookId, data]);
+
+    if (!currentStudent) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await fetchCompletedChapters(currentStudent.id, bookId);
+        if (cancelled) return;
+        if (rows.length === 0) return;
+        setDoneChapters((prev) => {
+          const next = new Set(prev);
+          rows.forEach((r) => next.add(r.chapter));
+          return next;
+        });
+        rows.forEach((r) => {
+          window.localStorage.setItem(doneKey(bookId, r.chapter), "true");
+        });
+      } catch (e) {
+        console.warn("Failed to load server completions", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookId, currentStudent, data]);
+
+  useEffect(() => {
+    if (!currentStudent) return;
+    void flushPendingLogs();
+    const onOnline = () => {
+      void flushPendingLogs();
+    };
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+    };
+  }, [currentStudent]);
 
   useEffect(() => {
     const savedDone =
@@ -977,8 +1084,8 @@ export default function BibleReadingPage() {
     reachedBottomRef.current = false;
 
     // 장마다 최소 읽기 시간: 단어 수 + 절 수 기반으로 동적 계산.
-    // - 묵독 속도 가정: ~150 단어/분 → 단어당 0.4초
-    // - 절마다 시선 이동/번호 인지: 0.4초 추가
+    // - 묵독 속도 가정: ~300 단어/분 → 단어당 0.2초
+    // - 절마다 시선 이동/번호 인지: 0.2초 추가
     // - 짧은 본문은 최소 3초 보장
     const wordCount = verses.reduce(
       (sum, verse) =>
@@ -988,7 +1095,7 @@ export default function BibleReadingPage() {
     const verseCount = verses.length;
     const computedSeconds = Math.max(
       3,
-      Math.round(verseCount * 0.4 + wordCount * 0.4),
+      Math.round(verseCount * 0.2 + wordCount * 0.2),
     );
     setChapterMinSeconds(computedSeconds);
     setScrollSecondsLeft(computedSeconds);
@@ -1329,11 +1436,13 @@ export default function BibleReadingPage() {
           <a href="/bible-reading" aria-current="page">
             성경읽기
           </a>
-          <a className="brp-nav-contact" href="/#contact">
-            문의
+          <a className="brp-nav-contact" href="/teacher">
+            선생님
           </a>
         </nav>
       </header>
+
+      <StudentIdentityBar onChange={handleStudentChange} />
 
       <div className="brp-progress" aria-hidden="true">
         <span style={{ width: `${progress}%` }} />
