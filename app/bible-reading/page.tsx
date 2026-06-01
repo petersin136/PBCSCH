@@ -3287,8 +3287,8 @@ export default function BibleReadingPage() {
           .brp-nav {
             width: auto;
             justify-content: flex-end;
-            gap: 12px;
-            font-size: 13px;
+            gap: 10px;
+            font-size: 12.5px;
             flex-shrink: 0;
           }
 
@@ -3297,7 +3297,12 @@ export default function BibleReadingPage() {
           }
 
           .brp-nav-contact {
-            display: none;
+            color: rgba(26, 26, 26, 0.62);
+            padding: 4px 10px;
+            border: 1px solid rgba(26, 26, 26, 0.18);
+            border-radius: 999px;
+            font-size: 12px;
+            white-space: nowrap;
           }
 
           .brp-toolbar,
